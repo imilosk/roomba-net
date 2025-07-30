@@ -6,6 +6,10 @@ Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var services = Bootstrapper.CreateServiceProvider();
 
-var service = services.GetRequiredService<IService>();
+var roombaController = services.GetRequiredService<IRoombaController>();
 
-await service.Main();
+await roombaController.Subscribe();
+// await roombaController.Find();
+
+Console.WriteLine("Waiting for messages... (Press any key to exit)");
+Console.ReadKey();
