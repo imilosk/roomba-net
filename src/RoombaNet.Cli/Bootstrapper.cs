@@ -1,0 +1,29 @@
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using RoombaNet.Mqtt;
+
+namespace RoombaNet.Cli;
+
+public static class Bootstrapper
+{
+    public static IServiceProvider CreateServiceProvider()
+    {
+        var environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Development";
+
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json", false)
+            .AddJsonFile($"appsettings.{environment}.json", true)
+            .AddJsonFile($"secrets.{environment}.json", true)
+            .AddEnvironmentVariables()
+            .Build();
+
+        var services = new ServiceCollection();
+
+        services.AddLogging(builder => { builder.AddConsole(); });
+
+        services.AddMqtt(configuration);
+
+        return services.BuildServiceProvider();
+    }
+}
