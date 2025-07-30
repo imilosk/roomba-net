@@ -15,6 +15,7 @@ public class RoombaController : IRoombaController
     private readonly RoombaSettings _roombaSettings;
     private readonly MqttClientOptions _mqttClientOptions;
     private readonly IMqttClient _mqttClient;
+    private readonly MqttClientSubscribeOptions _subscribeOptions;
 
     public RoombaController(
         ILogger<RoombaController> logger,
@@ -27,6 +28,8 @@ public class RoombaController : IRoombaController
         _roombaSettings = roombaSettings;
 
         _mqttClientOptions = CreateMqttClientChannelOptions(roombaSettings);
+        _subscribeOptions = CreateMqttSubscribeOptions();
+
         _mqttClient = _mqttClientFactory.CreateMqttClient();
     }
 
@@ -35,15 +38,7 @@ public class RoombaController : IRoombaController
         // Set up message received handler to print all messages
         _mqttClient.ApplicationMessageReceivedAsync += e =>
         {
-            Console.WriteLine("📥 Message received:");
-            Console.WriteLine($"   Topic: {e.ApplicationMessage.Topic}");
-            var payload = e.ApplicationMessage.ConvertPayloadToString();
-            Console.WriteLine($"   Payload: {payload}");
-            Console.WriteLine($"   QoS: {e.ApplicationMessage.QualityOfServiceLevel}");
-            Console.WriteLine($"   Retain: {e.ApplicationMessage.Retain}");
-            Console.WriteLine($"   Timestamp: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-            Console.WriteLine("   " + new string('-', 50));
-
+            PrintMessage(e);
             return Task.CompletedTask;
         };
 
@@ -59,13 +54,7 @@ public class RoombaController : IRoombaController
                 result.AssignedClientIdentifier
             );
 
-            var subscribeOptions = _mqttClientFactory.CreateSubscribeOptionsBuilder()
-                .WithTopicFilter(f => f
-                    .WithTopic(Topic.All)
-                    .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce))
-                .Build();
-
-            await _mqttClient.SubscribeAsync(subscribeOptions, CancellationToken.None);
+            await _mqttClient.SubscribeAsync(_subscribeOptions, CancellationToken.None);
             _logger.LogInformation("Subscribed to all topics (#)");
         }
         else
@@ -90,7 +79,7 @@ public class RoombaController : IRoombaController
         }
     }
 
-    private static async Task<bool> ApiCall(
+    private async Task<bool> ApiCall(
         IMqttClient mqttClient,
         string topic,
         string command,
@@ -99,7 +88,7 @@ public class RoombaController : IRoombaController
     {
         object cmd;
 
-        if (topic == "delta")
+        if (topic == Topic.Delta)
         {
             cmd = new
             {
@@ -116,14 +105,14 @@ public class RoombaController : IRoombaController
             };
         }
 
-        // Merge with additional arguments if provided
         if (additionalArgs is not null)
         {
-            // Create anonymous object combining cmd and additionalArgs
             var cmdDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(
-                System.Text.Json.JsonSerializer.Serialize(cmd));
+                System.Text.Json.JsonSerializer.Serialize(cmd)
+            );
             var argsDict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(
-                System.Text.Json.JsonSerializer.Serialize(additionalArgs));
+                System.Text.Json.JsonSerializer.Serialize(additionalArgs)
+            );
 
             if (cmdDict is not null && argsDict is not null)
             {
@@ -137,7 +126,7 @@ public class RoombaController : IRoombaController
         }
 
         var json = System.Text.Json.JsonSerializer.Serialize(cmd);
-        Console.WriteLine($"📤 Publishing to topic '{topic}': {json}");
+        _logger.LogInformation("Publishing to topic '{topic}': {json}", topic, json);
 
         var message = new MqttApplicationMessageBuilder()
             .WithTopic(topic)
@@ -146,6 +135,7 @@ public class RoombaController : IRoombaController
             .Build();
 
         var publishResult = await mqttClient.PublishAsync(message, CancellationToken.None);
+
         return publishResult.IsSuccess;
     }
 
@@ -163,6 +153,27 @@ public class RoombaController : IRoombaController
                 o.WithCertificateValidationHandler(_ => true);
             })
             .Build();
+    }
+
+    private MqttClientSubscribeOptions CreateMqttSubscribeOptions()
+    {
+        return _mqttClientFactory.CreateSubscribeOptionsBuilder()
+            .WithTopicFilter(f => f
+                .WithTopic(Topic.All)
+                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce))
+            .Build();
+    }
+
+    private static void PrintMessage(MqttApplicationMessageReceivedEventArgs e)
+    {
+        Console.WriteLine("📥 Message received:");
+        Console.WriteLine($"   Topic: {e.ApplicationMessage.Topic}");
+        var payload = e.ApplicationMessage.ConvertPayloadToString();
+        Console.WriteLine($"   Payload: {payload}");
+        Console.WriteLine($"   QoS: {e.ApplicationMessage.QualityOfServiceLevel}");
+        Console.WriteLine($"   Retain: {e.ApplicationMessage.Retain}");
+        Console.WriteLine($"   Timestamp: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+        Console.WriteLine("   " + new string('-', 50));
     }
 
     public void Dispose()
