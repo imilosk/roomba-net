@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/MqttTest/MqttTest.csproj" />
+  <Project Path="src/RoombaNet.Settings/RoombaNet.Settings.csproj" />
+</Solution>
