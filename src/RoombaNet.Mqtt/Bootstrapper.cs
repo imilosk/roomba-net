@@ -33,7 +33,7 @@ public static class Bootstrapper
         if (configValue is null)
         {
             throw new InvalidOperationException(
-                $"Configuration section '{sectionName}' is required for {typeof(T).Name}."
+                $"Configuration section '{sectionName}' is required."
             );
         }
 
