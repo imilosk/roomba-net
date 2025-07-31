@@ -1,6 +1,9 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using RoombaNet.Cli.Commands;
+using RoombaNet.Cli.Services;
 using RoombaNet.Mqtt;
 
 namespace RoombaNet.Cli;
@@ -23,6 +26,9 @@ public static class Bootstrapper
         services.AddLogging(builder => { builder.AddConsole(); });
 
         services.AddMqtt(configuration);
+
+        services.TryAddSingleton<OutputService>();
+        services.TryAddSingleton<CliCommandBuilder>();
 
         return services.BuildServiceProvider();
     }

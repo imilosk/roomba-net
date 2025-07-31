@@ -108,11 +108,11 @@ Access the web interface at `http://localhost:5000` for:
 ## 📋 Roadmap
 
 - [x] MQTT communication with Roomba
-- [ ] CLI tool for basic commands
+- [x] CLI tool for basic commands
 - [x] Message subscription and monitoring
 - [ ] RESTful API
 - [ ] Web UI
-- [ ] Additional Roomba commands (start, stop, dock, etc.)
+- [ ] Additional Roomba commands
 - [ ] Real-time status monitoring
 - [ ] Cleaning history and analytics
 

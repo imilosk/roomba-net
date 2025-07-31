@@ -2,11 +2,11 @@ namespace RoombaNet.Mqtt;
 
 public interface IRoombaClient
 {
-    Task Find();
-    Task Start();
-    Task Stop();
-    Task Pause();
-    Task Resume();
-    Task Dock();
-    Task Evac();
+    Task Find(CancellationToken cancellationToken = default);
+    Task Start(CancellationToken cancellationToken = default);
+    Task Stop(CancellationToken cancellationToken = default);
+    Task Pause(CancellationToken cancellationToken = default);
+    Task Resume(CancellationToken cancellationToken = default);
+    Task Dock(CancellationToken cancellationToken = default);
+    Task Evac(CancellationToken cancellationToken = default);
 }

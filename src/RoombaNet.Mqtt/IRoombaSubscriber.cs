@@ -4,5 +4,8 @@ namespace RoombaNet.Mqtt;
 
 public interface IRoombaSubscriber
 {
-    Task Subscribe(Action<MqttApplicationMessageReceivedEventArgs> onMessageReceived);
+    Task Subscribe(
+        Action<MqttApplicationMessageReceivedEventArgs> onMessageReceived,
+        CancellationToken cancellationToken = default
+    );
 }

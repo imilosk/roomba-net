@@ -21,7 +21,10 @@ public class RoombaSubscriber : IRoombaSubscriber
         _subscribeOptions = connectionManager.CreateMqttSubscribeOptions(Topic.All);
     }
 
-    public async Task Subscribe(Action<MqttApplicationMessageReceivedEventArgs> onMessageReceived)
+    public async Task Subscribe(
+        Action<MqttApplicationMessageReceivedEventArgs> onMessageReceived,
+        CancellationToken cancellationToken = default
+    )
     {
         var mqttClient = await _connectionManager.GetClient();
 
@@ -31,7 +34,7 @@ public class RoombaSubscriber : IRoombaSubscriber
             return Task.CompletedTask;
         };
 
-        await mqttClient.SubscribeAsync(_subscribeOptions, CancellationToken.None);
+        await mqttClient.SubscribeAsync(_subscribeOptions, cancellationToken);
         _logger.LogInformation("Subscribed to all topics (#)");
     }
 }

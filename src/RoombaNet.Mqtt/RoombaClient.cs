@@ -51,47 +51,47 @@ public class RoombaClient : IRoombaClient
         _timeProvider = timeProvider;
     }
 
-    public async Task Find()
+    public async Task Find(CancellationToken cancellationToken = default)
     {
-        await ExecuteCommand(Command.Find);
+        await ExecuteCommand(Command.Find, cancellationToken);
     }
 
-    public async Task Start()
+    public async Task Start(CancellationToken cancellationToken = default)
     {
-        await ExecuteCommand(Command.Start);
+        await ExecuteCommand(Command.Start, cancellationToken);
     }
 
-    public async Task Stop()
+    public async Task Stop(CancellationToken cancellationToken = default)
     {
-        await ExecuteCommand(Command.Stop);
+        await ExecuteCommand(Command.Stop, cancellationToken);
     }
 
-    public async Task Pause()
+    public async Task Pause(CancellationToken cancellationToken = default)
     {
-        await ExecuteCommand(Command.Pause);
+        await ExecuteCommand(Command.Pause, cancellationToken);
     }
 
-    public async Task Resume()
+    public async Task Resume(CancellationToken cancellationToken = default)
     {
-        await ExecuteCommand(Command.Resume);
+        await ExecuteCommand(Command.Resume, cancellationToken);
     }
 
-    public async Task Dock()
+    public async Task Dock(CancellationToken cancellationToken = default)
     {
-        await ExecuteCommand(Command.Dock);
+        await ExecuteCommand(Command.Dock, cancellationToken);
     }
 
-    public async Task Evac()
+    public async Task Evac(CancellationToken cancellationToken = default)
     {
-        await ExecuteCommand(Command.Evac);
+        await ExecuteCommand(Command.Evac, cancellationToken);
     }
 
-    private async Task ExecuteCommand(string command)
+    private async Task ExecuteCommand(string command, CancellationToken cancellationToken = default)
     {
         var mqttClient = await _connectionManager.GetClient();
         const string topic = Topic.Cmd;
 
-        var success = await ApiCall(mqttClient, topic, command);
+        var success = await ApiCall(mqttClient, topic, command, cancellationToken);
         if (success)
         {
             _logger.LogInformation("Command 'find' sent successfully to topic '{Topic}'", topic);
@@ -105,7 +105,8 @@ public class RoombaClient : IRoombaClient
     private async Task<bool> ApiCall(
         IMqttClient mqttClient,
         string topic,
-        string command
+        string command,
+        CancellationToken cancellationToken = default
     )
     {
         var payload = new CommandPayload(
@@ -114,13 +115,22 @@ public class RoombaClient : IRoombaClient
             MessageInitiator
         );
 
-        return await PublishMessage(mqttClient, topic, payload);
+        return await PublishMessage(mqttClient, topic, payload, cancellationToken);
     }
 
-    private async Task<bool> PublishMessage(IMqttClient mqttClient, string topic, CommandPayload payload)
+    private async Task<bool> PublishMessage(
+        IMqttClient mqttClient,
+        string topic,
+        CommandPayload payload,
+        CancellationToken cancellationToken = default
+    )
     {
-        _logger.LogInformation("Publishing to topic '{Topic}', command: '{Payload}', '{Time}'", topic, payload.Command,
-            payload.Time);
+        _logger.LogInformation(
+            "Publishing to topic '{Topic}', command: '{Payload}', '{Time}'",
+            topic,
+            payload.Command,
+            payload.Time
+        );
 
         var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(
             payload,
@@ -134,7 +144,7 @@ public class RoombaClient : IRoombaClient
             .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
             .Build();
 
-        var publishResult = await mqttClient.PublishAsync(message, CancellationToken.None);
+        var publishResult = await mqttClient.PublishAsync(message, cancellationToken);
 
         return publishResult.IsSuccess;
     }

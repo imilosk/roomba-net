@@ -1,6 +1,6 @@
 namespace RoombaNet.Mqtt.Constants;
 
-public static class Command {
+internal static class Command {
     public const string Find = "find";
     public const string Start = "start";
     public const string Stop = "stop";

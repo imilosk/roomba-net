@@ -1,6 +1,6 @@
 namespace RoombaNet.Mqtt.Constants;
 
-public static class Topic
+internal static class Topic
 {
     public const string All = "#";
     public const string Cmd = "cmd";
