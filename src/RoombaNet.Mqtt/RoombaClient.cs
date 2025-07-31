@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Protocol;
@@ -7,6 +8,38 @@ using RoombaNet.Mqtt.Extensions;
 
 namespace RoombaNet.Mqtt;
 
+public readonly struct CommandPayload : IRoombaPayload
+{
+    public CommandPayload(string command, long time, string initiator)
+    {
+        Command = command;
+        Time = time;
+        Initiator = initiator;
+    }
+
+    [JsonPropertyName("command")]
+    private string Command { get; } = string.Empty;
+
+    [JsonPropertyName("time")]
+    public long Time { get; }
+
+    [JsonPropertyName("initiator")]
+    private string Initiator { get; } = string.Empty;
+}
+
+public readonly struct StatePayload : IRoombaPayload
+{
+    public StatePayload(string state)
+    {
+        State = state;
+    }
+
+    [JsonPropertyName("state")]
+    public string State { get; } = string.Empty;
+}
+
+public interface IRoombaPayload;
+
 public class RoombaClient : IRoombaClient
 {
     private const string MessageInitiator = "localApp";
@@ -14,7 +47,7 @@ public class RoombaClient : IRoombaClient
     private readonly ILogger<RoombaClient> _logger;
     private readonly IRoombaConnectionManager _connectionManager;
     private readonly TimeProvider _timeProvider;
-    private readonly MqttApplicationMessageBuilder _messageBuilder;
+    private static readonly MqttApplicationMessageBuilder MessageBuilder = new();
 
     public RoombaClient(
         ILogger<RoombaClient> logger,
@@ -25,7 +58,6 @@ public class RoombaClient : IRoombaClient
         _logger = logger;
         _connectionManager = connectionManager;
         _timeProvider = timeProvider;
-        _messageBuilder = new MqttApplicationMessageBuilder();
     }
 
     public async Task Find()
@@ -49,31 +81,30 @@ public class RoombaClient : IRoombaClient
         string command
     )
     {
-        object cmd;
+        var payload = CreateCommandPayload(topic, command);
 
-        if (topic == Topic.Delta)
-        {
-            cmd = new
-            {
-                state = command,
-            };
-        }
-        else
-        {
-            cmd = new
-            {
+        return await PublishMessage(mqttClient, topic, payload);
+    }
+
+    private IRoombaPayload CreateCommandPayload(string topic, string command)
+    {
+        return topic == Topic.Delta
+            ? new StatePayload(command)
+            : new CommandPayload(
                 command,
-                time = _timeProvider.GetTimestampSeconds(),
-                initiator = MessageInitiator,
-            };
-        }
+                _timeProvider.GetTimestampSeconds(),
+                MessageInitiator
+            );
+    }
 
-        var json = JsonSerializer.Serialize(cmd);
-        _logger.LogInformation("Publishing to topic '{topic}': {json}", topic, json);
+    private async Task<bool> PublishMessage(IMqttClient mqttClient, string topic, IRoombaPayload payload)
+    {
+        var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(payload);
+        _logger.LogInformation("Publishing to topic '{topic}': {payload}", topic, payload);
 
-        var message = _messageBuilder
+        var message = MessageBuilder
             .WithTopic(topic)
-            .WithPayload(json)
+            .WithPayload(jsonBytes)
             .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
             .Build();
 

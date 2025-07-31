@@ -25,6 +25,7 @@ public class RoombaConnectionManager : IRoombaConnectionManager
         _logger = logger;
         _mqttClientFactory = mqttClientFactory;
         _roombaSettings = settings;
+        
         _mqttClient = mqttClientFactory.CreateMqttClient();
         _mqttClientOptions = CreateMqttClientChannelOptions(settings);
     }
