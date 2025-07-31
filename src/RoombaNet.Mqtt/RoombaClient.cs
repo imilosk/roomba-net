@@ -8,6 +8,14 @@ using RoombaNet.Mqtt.Extensions;
 
 namespace RoombaNet.Mqtt;
 
+[JsonSerializable(typeof(CommandPayload))]
+[JsonSerializable(typeof(StatePayload))]
+[JsonSerializable(typeof(IRoombaPayload))]
+[JsonSourceGenerationOptions(WriteIndented = false, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+internal partial class RoombaJsonContext : JsonSerializerContext
+{
+}
+
 public readonly struct CommandPayload : IRoombaPayload
 {
     public CommandPayload(string command, long time, string initiator)
@@ -18,13 +26,13 @@ public readonly struct CommandPayload : IRoombaPayload
     }
 
     [JsonPropertyName("command")]
-    private string Command { get; } = string.Empty;
+    public string Command { get; } = string.Empty;
 
     [JsonPropertyName("time")]
     public long Time { get; }
 
     [JsonPropertyName("initiator")]
-    private string Initiator { get; } = string.Empty;
+    public string Initiator { get; } = string.Empty;
 }
 
 public readonly struct StatePayload : IRoombaPayload
@@ -99,7 +107,7 @@ public class RoombaClient : IRoombaClient
 
     private async Task<bool> PublishMessage(IMqttClient mqttClient, string topic, IRoombaPayload payload)
     {
-        var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(payload);
+        var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(payload, payload.GetType(), RoombaJsonContext.Default);
         _logger.LogInformation("Publishing to topic '{topic}': {payload}", topic, payload);
 
         var message = MessageBuilder
