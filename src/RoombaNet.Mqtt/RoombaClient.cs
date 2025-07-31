@@ -9,14 +9,10 @@ using RoombaNet.Mqtt.Extensions;
 namespace RoombaNet.Mqtt;
 
 [JsonSerializable(typeof(CommandPayload))]
-[JsonSerializable(typeof(StatePayload))]
-[JsonSerializable(typeof(IRoombaPayload))]
 [JsonSourceGenerationOptions(WriteIndented = false, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
-internal partial class RoombaJsonContext : JsonSerializerContext
-{
-}
+internal partial class RoombaJsonContext : JsonSerializerContext;
 
-public readonly struct CommandPayload : IRoombaPayload
+public readonly struct CommandPayload
 {
     public CommandPayload(string command, long time, string initiator)
     {
@@ -34,19 +30,6 @@ public readonly struct CommandPayload : IRoombaPayload
     [JsonPropertyName("initiator")]
     public string Initiator { get; } = string.Empty;
 }
-
-public readonly struct StatePayload : IRoombaPayload
-{
-    public StatePayload(string state)
-    {
-        State = state;
-    }
-
-    [JsonPropertyName("state")]
-    public string State { get; } = string.Empty;
-}
-
-public interface IRoombaPayload;
 
 public class RoombaClient : IRoombaClient
 {
@@ -70,16 +53,22 @@ public class RoombaClient : IRoombaClient
 
     public async Task Find()
     {
-        var mqttClient = await _connectionManager.GetClient();
+        await ExecuteCommand(Command.Find);
+    }
 
-        var success = await ApiCall(mqttClient, Topic.Cmd, Command.Find);
+    private async Task ExecuteCommand(string command)
+    {
+        var mqttClient = await _connectionManager.GetClient();
+        const string topic = Topic.Cmd;
+
+        var success = await ApiCall(mqttClient, topic, command);
         if (success)
         {
-            _logger.LogInformation("Command 'find' sent successfully");
+            _logger.LogInformation("Command 'find' sent successfully to topic '{Topic}'", topic);
         }
         else
         {
-            _logger.LogError("Failed to send 'find' command");
+            _logger.LogError("Failed to send 'find' command to topic '{Topic}'", topic);
         }
     }
 
@@ -89,26 +78,25 @@ public class RoombaClient : IRoombaClient
         string command
     )
     {
-        var payload = CreateCommandPayload(topic, command);
+        var payload = new CommandPayload(
+            command,
+            _timeProvider.GetTimestampSeconds(),
+            MessageInitiator
+        );
 
         return await PublishMessage(mqttClient, topic, payload);
     }
 
-    private IRoombaPayload CreateCommandPayload(string topic, string command)
+    private async Task<bool> PublishMessage(IMqttClient mqttClient, string topic, CommandPayload payload)
     {
-        return topic == Topic.Delta
-            ? new StatePayload(command)
-            : new CommandPayload(
-                command,
-                _timeProvider.GetTimestampSeconds(),
-                MessageInitiator
-            );
-    }
+        _logger.LogInformation("Publishing to topic '{Topic}', command: '{Payload}', '{Time}'", topic, payload.Command,
+            payload.Time);
 
-    private async Task<bool> PublishMessage(IMqttClient mqttClient, string topic, IRoombaPayload payload)
-    {
-        var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(payload, payload.GetType(), RoombaJsonContext.Default);
-        _logger.LogInformation("Publishing to topic '{topic}': {payload}", topic, payload);
+        var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(
+            payload,
+            payload.GetType(),
+            RoombaJsonContext.Default
+        );
 
         var message = MessageBuilder
             .WithTopic(topic)

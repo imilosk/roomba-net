@@ -12,9 +12,11 @@ public static class Bootstrapper
     {
         services.TryAddSingleton(TimeProvider.System);
 
-        var roombaSettings = new RoombaSettings();
-        configuration.Bind(roombaSettings);
-        services.TryAddSingleton(roombaSettings);
+        var configurationSection = configuration.GetSection(nameof(RoombaSettings));
+        var roombaSettings = configurationSection.Get<RoombaSettings>();
+        services.Configure<RoombaSettings>(configurationSection);
+        services.AddSingleton(roombaSettings ??
+                              throw new InvalidOperationException($"{nameof(RoombaSettings)} configuration is missing or invalid."));
 
         services.TryAddSingleton<MqttClientFactory>();
 
