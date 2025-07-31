@@ -16,7 +16,9 @@ public static class Bootstrapper
 
         services.TryAddSingleton<MqttClientFactory>();
 
-        services.TryAddSingleton<IRoombaController, RoombaController>();
+        services.TryAddSingleton<IRoombaConnectionManager, RoombaConnectionManager>();
+        services.TryAddSingleton<IRoombaClient, RoombaClient>();
+        services.TryAddSingleton<IRoombaSubscriber, RoombaSubscriber>();
 
         return services;
     }
@@ -32,9 +34,7 @@ public static class Bootstrapper
         var configValue = section.Get<T>();
         if (configValue is null)
         {
-            throw new InvalidOperationException(
-                $"Configuration section '{sectionName}' is required."
-            );
+            throw new InvalidOperationException($"Configuration section '{sectionName}' is required.");
         }
 
         services.TryAddSingleton(configValue);
