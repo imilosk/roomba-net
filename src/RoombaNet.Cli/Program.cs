@@ -12,7 +12,7 @@ var roombaSubscriber = services.GetRequiredService<IRoombaSubscriber>();
 
 Console.WriteLine("Waiting for messages... (Press any key to exit)");
 await roombaSubscriber.Subscribe(PrintMessage);
-// await roombaClient.Find();
+await roombaClient.Find();
 
 Console.ReadKey();
 

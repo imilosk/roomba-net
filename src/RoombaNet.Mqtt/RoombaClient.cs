@@ -56,6 +56,36 @@ public class RoombaClient : IRoombaClient
         await ExecuteCommand(Command.Find);
     }
 
+    public async Task Start()
+    {
+        await ExecuteCommand(Command.Start);
+    }
+
+    public async Task Stop()
+    {
+        await ExecuteCommand(Command.Stop);
+    }
+
+    public async Task Pause()
+    {
+        await ExecuteCommand(Command.Pause);
+    }
+
+    public async Task Resume()
+    {
+        await ExecuteCommand(Command.Resume);
+    }
+
+    public async Task Dock()
+    {
+        await ExecuteCommand(Command.Dock);
+    }
+
+    public async Task Evac()
+    {
+        await ExecuteCommand(Command.Evac);
+    }
+
     private async Task ExecuteCommand(string command)
     {
         var mqttClient = await _connectionManager.GetClient();
