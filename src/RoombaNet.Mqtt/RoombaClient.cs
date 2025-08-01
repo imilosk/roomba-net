@@ -10,6 +10,8 @@ namespace RoombaNet.Mqtt;
 
 [JsonSerializable(typeof(CommandPayload))]
 [JsonSerializable(typeof(SettingPayload))]
+[JsonSerializable(typeof(SettingPayload.StateObject))]
+[JsonSerializable(typeof(ChildLockSetting))]
 [JsonSourceGenerationOptions(WriteIndented = false, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 internal partial class RoombaJsonContext : JsonSerializerContext;
 
@@ -34,17 +36,35 @@ public readonly struct CommandPayload
 
 public readonly struct SettingPayload
 {
-    public SettingPayload(string setting, object value)
+    public SettingPayload(Dictionary<string, object> desired)
     {
-        Setting = setting;
-        Value = value;
+        State = new StateObject(desired);
     }
 
-    [JsonPropertyName("setting")]
-    public string Setting { get; } = string.Empty;
+    [JsonPropertyName("state")]
+    public StateObject State { get; }
 
-    [JsonPropertyName("value")]
-    public object Value { get; }
+    public readonly struct StateObject
+    {
+        public StateObject(Dictionary<string, object> desired)
+        {
+            Desired = desired;
+        }
+
+        [JsonPropertyName("desired")]
+        public Dictionary<string, object> Desired { get; }
+    }
+}
+
+public readonly struct ChildLockSetting
+{
+    public ChildLockSetting(bool childLock)
+    {
+        ChildLock = childLock;
+    }
+
+    [JsonPropertyName("childLock")]
+    public bool ChildLock { get; }
 }
 
 public class RoombaClient : IRoombaClient
@@ -119,7 +139,7 @@ public class RoombaClient : IRoombaClient
 
     private async Task ExecuteCommand(string command, CancellationToken cancellationToken = default)
     {
-        var mqttClient = await _connectionManager.GetClient();
+        var mqttClient = await _connectionManager.GetClient(cancellationToken);
 
         var success = await CommandApiCall(mqttClient, command, cancellationToken);
         if (success)
@@ -132,18 +152,18 @@ public class RoombaClient : IRoombaClient
         }
     }
 
-    private async Task SetSetting(string setting, object value, CancellationToken cancellationToken = default)
+    private async Task SetSetting(string setting, bool value, CancellationToken cancellationToken = default)
     {
-        var mqttClient = await _connectionManager.GetClient();
+        var mqttClient = await _connectionManager.GetClient(cancellationToken);
 
         var success = await SettingApiCall(mqttClient, setting, value, cancellationToken);
         if (success)
         {
-            _logger.LogInformation("Setting '{Setting}' sent successfully", setting);
+            _logger.LogInformation("Setting '{Setting}' set successfully", setting);
         }
         else
         {
-            _logger.LogError("Failed to send '{Setting}' setting", setting);
+            _logger.LogError("Failed to set '{Setting}' setting", setting);
         }
     }
 
@@ -173,10 +193,12 @@ public class RoombaClient : IRoombaClient
     {
         const string topic = Topic.Delta;
 
-        var payload = new SettingPayload(
-            setting,
-            value
-        );
+        var desired = new Dictionary<string, object>
+        {
+            { setting, value },
+        };
+
+        var payload = new SettingPayload(desired);
 
         return await PublishMessage(mqttClient, topic, payload, cancellationToken);
     }
@@ -212,9 +234,9 @@ public class RoombaClient : IRoombaClient
     )
     {
         _logger.LogInformation(
-            "Publishing to topic '{Topic}', setting: '{Payload}'",
+            "Publishing to topic '{Topic}', settings: {@Desired}",
             topic,
-            payload.Setting
+            payload.State.Desired
         );
 
         var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(

@@ -30,16 +30,16 @@ public class RoombaConnectionManager : IRoombaConnectionManager
         _mqttClientOptions = CreateMqttClientChannelOptions(settings);
     }
 
-    public async Task<IMqttClient> GetClient()
+    public async Task<IMqttClient> GetClient(CancellationToken cancellationToken = default)
     {
-        var success = await EnsureConnectedAsync();
+        var success = await EnsureConnectedAsync(cancellationToken);
 
         return !success
             ? throw new InvalidOperationException("Failed to connect to MQTT broker.")
             : _mqttClient;
     }
 
-    private async Task<bool> EnsureConnectedAsync()
+    private async Task<bool> EnsureConnectedAsync(CancellationToken cancellationToken = default)
     {
         if (IsConnected)
         {
@@ -48,7 +48,7 @@ public class RoombaConnectionManager : IRoombaConnectionManager
 
         _logger.LogInformation("Connecting to MQTT broker at {Ip}:{Port}...", _roombaSettings.Ip, _roombaSettings.Port);
 
-        var result = await _mqttClient.ConnectAsync(_mqttClientOptions, CancellationToken.None);
+        var result = await _mqttClient.ConnectAsync(_mqttClientOptions, cancellationToken);
 
         if (result.ResultCode == MqttClientConnectResultCode.Success)
         {

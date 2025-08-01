@@ -20,10 +20,11 @@ public class CliCommandBuilder
 
     public IEnumerable<Command> BuildCommands(CancellationToken cancellationToken)
     {
-        return new List<Command>
-        {
+        return
+        [
             new SubscribeCommand(_roombaSubscriber, cancellationToken),
             new ExecuteCommand(_roombaClient, cancellationToken),
-        };
+            new SettingCommand(_roombaClient, cancellationToken),
+        ];
     }
 }

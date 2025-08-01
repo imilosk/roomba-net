@@ -26,7 +26,7 @@ public class RoombaSubscriber : IRoombaSubscriber
         CancellationToken cancellationToken = default
     )
     {
-        var mqttClient = await _connectionManager.GetClient();
+        var mqttClient = await _connectionManager.GetClient(cancellationToken);
 
         mqttClient.ApplicationMessageReceivedAsync += e =>
         {

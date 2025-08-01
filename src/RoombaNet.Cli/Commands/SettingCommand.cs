@@ -16,10 +16,15 @@ public class SettingCommand : Command
         _roombaClient = roombaClient;
         _cancellationToken = cancellationToken;
 
-        AddSubcommand("childlock", "Train the Roomba / Mapping run", SetChildLock);
+        AddBooleanSubcommand("childlock", "Child/Pet Lock", SetChildLock);
     }
 
-    private void AddSubcommand(string commandName, string description, Func<Task> handler, params string[] aliases)
+    private void AddBooleanSubcommand(
+        string commandName,
+        string description,
+        Func<bool, Task> handler,
+        params string[] aliases
+    )
     {
         var command = new Command(commandName, description);
 
@@ -28,10 +33,16 @@ public class SettingCommand : Command
             command.Aliases.Add(alias);
         }
 
-        command.SetAction(async _ => await handler());
+        var enableCommand = new Command("enable", "Enable the setting");
+        enableCommand.SetAction(async _ => await handler(true));
+        command.Subcommands.Add(enableCommand);
+
+        var disableCommand = new Command("disable", "Disable the setting");
+        disableCommand.SetAction(async _ => await handler(false));
+        command.Subcommands.Add(disableCommand);
 
         Subcommands.Add(command);
     }
 
-    private async Task SetChildLock() => await _roombaClient.ChildLock(true, _cancellationToken);
+    private async Task SetChildLock(bool enable) => await _roombaClient.ChildLock(enable, _cancellationToken);
 }
