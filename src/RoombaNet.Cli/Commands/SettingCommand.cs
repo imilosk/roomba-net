@@ -17,6 +17,7 @@ public class SettingCommand : Command
         _cancellationToken = cancellationToken;
 
         AddBooleanSubcommand("childlock", "Child/Pet Lock", SetChildLock);
+        AddBooleanSubcommand("binpause", "Bin Pause", SetBinPause);
     }
 
     private void AddBooleanSubcommand(
@@ -34,10 +35,18 @@ public class SettingCommand : Command
         }
 
         var enableCommand = new Command("enable", "Enable the setting");
+        enableCommand.Aliases.Add("on");
+        enableCommand.Aliases.Add("true");
+        enableCommand.Aliases.Add("yes");
+        enableCommand.Aliases.Add("1");
         enableCommand.SetAction(async _ => await handler(true));
         command.Subcommands.Add(enableCommand);
 
         var disableCommand = new Command("disable", "Disable the setting");
+        disableCommand.Aliases.Add("off");
+        disableCommand.Aliases.Add("false");
+        disableCommand.Aliases.Add("no");
+        disableCommand.Aliases.Add("0");
         disableCommand.SetAction(async _ => await handler(false));
         command.Subcommands.Add(disableCommand);
 
@@ -45,4 +54,5 @@ public class SettingCommand : Command
     }
 
     private async Task SetChildLock(bool enable) => await _roombaClient.ChildLock(enable, _cancellationToken);
+    private async Task SetBinPause(bool enable) => await _roombaClient.BinPause(enable, _cancellationToken);
 }

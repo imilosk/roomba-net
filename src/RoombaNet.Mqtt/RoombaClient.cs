@@ -5,13 +5,12 @@ using MQTTnet;
 using MQTTnet.Protocol;
 using RoombaNet.Mqtt.Constants;
 using RoombaNet.Mqtt.Extensions;
+using RoombaNet.Mqtt.Settings;
 
 namespace RoombaNet.Mqtt;
 
 [JsonSerializable(typeof(CommandPayload))]
 [JsonSerializable(typeof(SettingPayload))]
-[JsonSerializable(typeof(SettingPayload.StateObject))]
-[JsonSerializable(typeof(ChildLockSetting))]
 [JsonSourceGenerationOptions(WriteIndented = false, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 internal partial class RoombaJsonContext : JsonSerializerContext;
 
@@ -36,35 +35,13 @@ public readonly struct CommandPayload
 
 public readonly struct SettingPayload
 {
-    public SettingPayload(Dictionary<string, object> desired)
+    public SettingPayload(Dictionary<string, bool> desired)
     {
-        State = new StateObject(desired);
+        State = desired;
     }
 
     [JsonPropertyName("state")]
-    public StateObject State { get; }
-
-    public readonly struct StateObject
-    {
-        public StateObject(Dictionary<string, object> desired)
-        {
-            Desired = desired;
-        }
-
-        [JsonPropertyName("desired")]
-        public Dictionary<string, object> Desired { get; }
-    }
-}
-
-public readonly struct ChildLockSetting
-{
-    public ChildLockSetting(bool childLock)
-    {
-        ChildLock = childLock;
-    }
-
-    [JsonPropertyName("childLock")]
-    public bool ChildLock { get; }
+    public Dictionary<string, bool> State { get; }
 }
 
 public class RoombaClient : IRoombaClient
@@ -74,17 +51,20 @@ public class RoombaClient : IRoombaClient
     private readonly ILogger<RoombaClient> _logger;
     private readonly IRoombaConnectionManager _connectionManager;
     private readonly TimeProvider _timeProvider;
+    private readonly RoombaSettings _roombaSettings;
     private static readonly MqttApplicationMessageBuilder MessageBuilder = new();
 
     public RoombaClient(
         ILogger<RoombaClient> logger,
         IRoombaConnectionManager connectionManager,
-        TimeProvider timeProvider
+        TimeProvider timeProvider,
+        RoombaSettings roombaSettings
     )
     {
         _logger = logger;
         _connectionManager = connectionManager;
         _timeProvider = timeProvider;
+        _roombaSettings = roombaSettings;
     }
 
     public async Task Find(CancellationToken cancellationToken = default)
@@ -137,6 +117,11 @@ public class RoombaClient : IRoombaClient
         await SetSetting(Setting.ChildLock, enable, cancellationToken);
     }
 
+    public async Task BinPause(bool enable, CancellationToken cancellationToken = default)
+    {
+        await SetSetting(Setting.BinPause, enable, cancellationToken);
+    }
+
     private async Task ExecuteCommand(string command, CancellationToken cancellationToken = default)
     {
         var mqttClient = await _connectionManager.GetClient(cancellationToken);
@@ -152,7 +137,11 @@ public class RoombaClient : IRoombaClient
         }
     }
 
-    private async Task SetSetting(string setting, bool value, CancellationToken cancellationToken = default)
+    private async Task SetSetting(
+        string setting,
+        bool value,
+        CancellationToken cancellationToken = default
+    )
     {
         var mqttClient = await _connectionManager.GetClient(cancellationToken);
 
@@ -187,15 +176,17 @@ public class RoombaClient : IRoombaClient
     private async Task<bool> SettingApiCall(
         IMqttClient mqttClient,
         string setting,
-        object value,
+        bool value,
         CancellationToken cancellationToken = default
     )
     {
         const string topic = Topic.Delta;
 
-        var desired = new Dictionary<string, object>
+        var desired = new Dictionary<string, bool>
         {
-            { setting, value },
+            {
+                setting, value
+            },
         };
 
         var payload = new SettingPayload(desired);
@@ -233,10 +224,14 @@ public class RoombaClient : IRoombaClient
         CancellationToken cancellationToken = default
     )
     {
+        Console.WriteLine(
+            $"Publishing to topic '{topic}', settings: {JsonSerializer.Serialize(payload, payload.GetType(), RoombaJsonContext.Default)}"
+        );
+
         _logger.LogInformation(
             "Publishing to topic '{Topic}', settings: {@Desired}",
             topic,
-            payload.State.Desired
+            payload.State
         );
 
         var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(

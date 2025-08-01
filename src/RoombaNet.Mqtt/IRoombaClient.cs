@@ -12,4 +12,5 @@ public interface IRoombaClient
     Task Reset(CancellationToken cancellationToken = default);
     Task Train(CancellationToken cancellationToken = default);
     Task ChildLock(bool enable, CancellationToken cancellationToken = default);
+    Task BinPause(bool enable, CancellationToken cancellationToken = default);
 }
