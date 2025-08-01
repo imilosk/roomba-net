@@ -21,7 +21,8 @@ public static class Bootstrapper
         services.TryAddSingleton<MqttClientFactory>();
 
         services.TryAddSingleton<IRoombaConnectionManager, RoombaConnectionManager>();
-        services.TryAddSingleton<IRoombaClient, RoombaClient>();
+        services.TryAddSingleton<IRoombaCommandClient, RoombaCommandClient>();
+        services.TryAddSingleton<IRoombaSettingsClient, RoombaSettingsClient>();
         services.TryAddSingleton<IRoombaSubscriber, RoombaSubscriber>();
 
         return services;

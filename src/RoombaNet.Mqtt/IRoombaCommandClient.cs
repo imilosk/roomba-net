@@ -1,6 +1,6 @@
 namespace RoombaNet.Mqtt;
 
-public interface IRoombaClient
+public interface IRoombaCommandClient
 {
     Task Find(CancellationToken cancellationToken = default);
     Task Start(CancellationToken cancellationToken = default);
@@ -11,6 +11,4 @@ public interface IRoombaClient
     Task Evac(CancellationToken cancellationToken = default);
     Task Reset(CancellationToken cancellationToken = default);
     Task Train(CancellationToken cancellationToken = default);
-    Task ChildLock(bool enable, CancellationToken cancellationToken = default);
-    Task BinPause(bool enable, CancellationToken cancellationToken = default);
 }

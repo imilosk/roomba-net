@@ -5,15 +5,15 @@ namespace RoombaNet.Cli.Commands;
 
 public class ExecuteCommand : Command
 {
-    private readonly IRoombaClient _roombaClient;
+    private readonly IRoombaCommandClient _roombaCommandClient;
     private readonly CancellationToken _cancellationToken;
 
     public ExecuteCommand(
-        IRoombaClient roombaClient,
+        IRoombaCommandClient roombaClient,
         CancellationToken cancellationToken
     ) : base("command", "Manage Roomba operations")
     {
-        _roombaClient = roombaClient;
+        _roombaCommandClient = roombaClient;
         _cancellationToken = cancellationToken;
 
         AddSubcommand("find", "Make Roomba beep to locate it", ExecuteFind, "locate");
@@ -24,7 +24,7 @@ public class ExecuteCommand : Command
         AddSubcommand("dock", "Return to dock", ExecuteDock, "home");
         AddSubcommand("evac", "Empty the bin", ExecuteEvac, "empty");
         AddSubcommand("reset", "Reset the Roomba", ExecuteReset, "reboot");
-        AddSubcommand("train", "Train the Roomba / Mapping run", ExecuteTrain, "map");
+        AddSubcommand("train", "Train the Roomba (Mapping run)", ExecuteTrain, "map");
     }
 
     private void AddSubcommand(string commandName, string description, Func<Task> handler, params string[] aliases)
@@ -41,13 +41,13 @@ public class ExecuteCommand : Command
         Subcommands.Add(command);
     }
 
-    private async Task ExecuteFind() => await _roombaClient.Find(_cancellationToken);
-    private async Task ExecuteStart() => await _roombaClient.Start(_cancellationToken);
-    private async Task ExecuteStop() => await _roombaClient.Stop(_cancellationToken);
-    private async Task ExecutePause() => await _roombaClient.Pause(_cancellationToken);
-    private async Task ExecuteResume() => await _roombaClient.Resume(_cancellationToken);
-    private async Task ExecuteDock() => await _roombaClient.Dock(_cancellationToken);
-    private async Task ExecuteEvac() => await _roombaClient.Evac(_cancellationToken);
-    private async Task ExecuteReset() => await _roombaClient.Reset(_cancellationToken);
-    private async Task ExecuteTrain() => await _roombaClient.Train(_cancellationToken);
+    private async Task ExecuteFind() => await _roombaCommandClient.Find(_cancellationToken);
+    private async Task ExecuteStart() => await _roombaCommandClient.Start(_cancellationToken);
+    private async Task ExecuteStop() => await _roombaCommandClient.Stop(_cancellationToken);
+    private async Task ExecutePause() => await _roombaCommandClient.Pause(_cancellationToken);
+    private async Task ExecuteResume() => await _roombaCommandClient.Resume(_cancellationToken);
+    private async Task ExecuteDock() => await _roombaCommandClient.Dock(_cancellationToken);
+    private async Task ExecuteEvac() => await _roombaCommandClient.Evac(_cancellationToken);
+    private async Task ExecuteReset() => await _roombaCommandClient.Reset(_cancellationToken);
+    private async Task ExecuteTrain() => await _roombaCommandClient.Train(_cancellationToken);
 }

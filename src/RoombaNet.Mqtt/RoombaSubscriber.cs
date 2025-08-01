@@ -18,7 +18,7 @@ public class RoombaSubscriber : IRoombaSubscriber
         _connectionManager = connectionManager;
         _logger = logger;
 
-        _subscribeOptions = connectionManager.CreateMqttSubscribeOptions(Topic.All);
+        _subscribeOptions = connectionManager.CreateMqttSubscribeOptions(RoombaTopic.All);
     }
 
     public async Task Subscribe(

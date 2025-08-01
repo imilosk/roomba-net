@@ -7,15 +7,18 @@ namespace RoombaNet.Cli.Commands;
 public class CliCommandBuilder
 {
     private readonly IRoombaSubscriber _roombaSubscriber;
-    private readonly IRoombaClient _roombaClient;
+    private readonly IRoombaCommandClient _roombaCommandClient;
+    private readonly IRoombaSettingsClient _roombaSettingsClient;
 
     public CliCommandBuilder(
         IRoombaSubscriber roombaSubscriber,
-        IRoombaClient roombaClient
+        IRoombaCommandClient roombaCommandClient,
+        IRoombaSettingsClient roombaSettingsClient
     )
     {
         _roombaSubscriber = roombaSubscriber;
-        _roombaClient = roombaClient;
+        _roombaCommandClient = roombaCommandClient;
+        _roombaSettingsClient = roombaSettingsClient;
     }
 
     public IEnumerable<Command> BuildCommands(CancellationToken cancellationToken)
@@ -23,8 +26,8 @@ public class CliCommandBuilder
         return
         [
             new SubscribeCommand(_roombaSubscriber, cancellationToken),
-            new ExecuteCommand(_roombaClient, cancellationToken),
-            new SettingCommand(_roombaClient, cancellationToken),
+            new ExecuteCommand(_roombaCommandClient, cancellationToken),
+            new SettingCommand(_roombaSettingsClient, cancellationToken),
         ];
     }
 }

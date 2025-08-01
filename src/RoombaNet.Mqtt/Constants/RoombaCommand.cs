@@ -1,6 +1,6 @@
 namespace RoombaNet.Mqtt.Constants;
 
-internal static class Command
+internal static class RoombaCommand
 {
     public static readonly string Find = nameof(Find).ToLowerInvariant();
     public static readonly string Start = nameof(Start).ToLowerInvariant();

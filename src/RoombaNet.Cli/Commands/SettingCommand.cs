@@ -5,15 +5,15 @@ namespace RoombaNet.Cli.Commands;
 
 public class SettingCommand : Command
 {
-    private readonly IRoombaClient _roombaClient;
+    private readonly IRoombaSettingsClient _roombaSettingsClient;
     private readonly CancellationToken _cancellationToken;
 
     public SettingCommand(
-        IRoombaClient roombaClient,
+        IRoombaSettingsClient roombaSettingsClient,
         CancellationToken cancellationToken = default
     ) : base("setting", "Manage Roomba settings")
     {
-        _roombaClient = roombaClient;
+        _roombaSettingsClient = roombaSettingsClient;
         _cancellationToken = cancellationToken;
 
         AddBooleanSubcommand("childlock", "Child/Pet Lock", SetChildLock);
@@ -53,6 +53,6 @@ public class SettingCommand : Command
         Subcommands.Add(command);
     }
 
-    private async Task SetChildLock(bool enable) => await _roombaClient.ChildLock(enable, _cancellationToken);
-    private async Task SetBinPause(bool enable) => await _roombaClient.BinPause(enable, _cancellationToken);
+    private async Task SetChildLock(bool enable) => await _roombaSettingsClient.ChildLock(enable, _cancellationToken);
+    private async Task SetBinPause(bool enable) => await _roombaSettingsClient.BinPause(enable, _cancellationToken);
 }
