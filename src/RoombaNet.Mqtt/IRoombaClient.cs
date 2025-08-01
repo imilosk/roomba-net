@@ -9,4 +9,7 @@ public interface IRoombaClient
     Task Resume(CancellationToken cancellationToken = default);
     Task Dock(CancellationToken cancellationToken = default);
     Task Evac(CancellationToken cancellationToken = default);
+    Task Reset(CancellationToken cancellationToken = default);
+    Task Train(CancellationToken cancellationToken = default);
+    Task ChildLock(bool enable, CancellationToken cancellationToken = default);
 }
