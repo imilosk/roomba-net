@@ -10,7 +10,9 @@ using RoombaNet.Mqtt.Settings;
 namespace RoombaNet.Mqtt;
 
 [JsonSerializable(typeof(CommandPayload))]
-[JsonSerializable(typeof(SettingPayload))]
+[JsonSerializable(typeof(SettingPayload<bool>))]
+[JsonSerializable(typeof(SettingPayload<int>))]
+[JsonSerializable(typeof(SettingPayload<string>))]
 [JsonSourceGenerationOptions(WriteIndented = false, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 internal partial class RoombaJsonContext : JsonSerializerContext;
 
@@ -33,15 +35,15 @@ public readonly struct CommandPayload
     public string Initiator { get; } = string.Empty;
 }
 
-public readonly struct SettingPayload
+public readonly struct SettingPayload<T>
 {
-    public SettingPayload(Dictionary<string, bool> desired)
+    public SettingPayload(Dictionary<string, T> desired)
     {
         State = desired;
     }
 
     [JsonPropertyName("state")]
-    public Dictionary<string, bool> State { get; }
+    public Dictionary<string, T> State { get; }
 }
 
 public class RoombaClient : IRoombaClient
@@ -51,20 +53,17 @@ public class RoombaClient : IRoombaClient
     private readonly ILogger<RoombaClient> _logger;
     private readonly IRoombaConnectionManager _connectionManager;
     private readonly TimeProvider _timeProvider;
-    private readonly RoombaSettings _roombaSettings;
     private static readonly MqttApplicationMessageBuilder MessageBuilder = new();
 
     public RoombaClient(
         ILogger<RoombaClient> logger,
-        IRoombaConnectionManager connectionManager,
         TimeProvider timeProvider,
-        RoombaSettings roombaSettings
+        IRoombaConnectionManager connectionManager
     )
     {
         _logger = logger;
         _connectionManager = connectionManager;
         _timeProvider = timeProvider;
-        _roombaSettings = roombaSettings;
     }
 
     public async Task Find(CancellationToken cancellationToken = default)
@@ -156,6 +155,44 @@ public class RoombaClient : IRoombaClient
         }
     }
 
+    private async Task SetSetting(
+        string setting,
+        int value,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var mqttClient = await _connectionManager.GetClient(cancellationToken);
+
+        var success = await SettingApiCall(mqttClient, setting, value, cancellationToken);
+        if (success)
+        {
+            _logger.LogInformation("Setting '{Setting}' set successfully", setting);
+        }
+        else
+        {
+            _logger.LogError("Failed to set '{Setting}' setting", setting);
+        }
+    }
+
+    private async Task SetSetting(
+        string setting,
+        string value,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var mqttClient = await _connectionManager.GetClient(cancellationToken);
+
+        var success = await SettingApiCall(mqttClient, setting, value, cancellationToken);
+        if (success)
+        {
+            _logger.LogInformation("Setting '{Setting}' set successfully", setting);
+        }
+        else
+        {
+            _logger.LogError("Failed to set '{Setting}' setting", setting);
+        }
+    }
+
     private async Task<bool> CommandApiCall(
         IMqttClient mqttClient,
         string command,
@@ -173,23 +210,23 @@ public class RoombaClient : IRoombaClient
         return await PublishMessage(mqttClient, topic, payload, cancellationToken);
     }
 
-    private async Task<bool> SettingApiCall(
+    private async Task<bool> SettingApiCall<T>(
         IMqttClient mqttClient,
         string setting,
-        bool value,
+        T value,
         CancellationToken cancellationToken = default
     )
     {
         const string topic = Topic.Delta;
 
-        var desired = new Dictionary<string, bool>
+        var desired = new Dictionary<string, T>
         {
             {
                 setting, value
             },
         };
 
-        var payload = new SettingPayload(desired);
+        var payload = new SettingPayload<T>(desired);
 
         return await PublishMessage(mqttClient, topic, payload, cancellationToken);
     }
@@ -217,10 +254,10 @@ public class RoombaClient : IRoombaClient
         return await PublishMessage(mqttClient, topic, jsonBytes, cancellationToken);
     }
 
-    private async Task<bool> PublishMessage(
+    private async Task<bool> PublishMessage<T>(
         IMqttClient mqttClient,
         string topic,
-        SettingPayload payload,
+        SettingPayload<T> payload,
         CancellationToken cancellationToken = default
     )
     {
