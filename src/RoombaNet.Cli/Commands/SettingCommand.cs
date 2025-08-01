@@ -1,5 +1,5 @@
 using System.CommandLine;
-using RoombaNet.Mqtt;
+using RoombaNet.Core;
 
 namespace RoombaNet.Cli.Commands;
 

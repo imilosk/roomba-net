@@ -1,6 +1,6 @@
 using MQTTnet;
 
-namespace RoombaNet.Mqtt;
+namespace RoombaNet.Transport.Mqtt;
 
 public interface IRoombaConnectionManager : IDisposable, IAsyncDisposable
 {

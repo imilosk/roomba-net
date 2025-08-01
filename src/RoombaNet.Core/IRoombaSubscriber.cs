@@ -1,6 +1,6 @@
 using MQTTnet;
 
-namespace RoombaNet.Mqtt;
+namespace RoombaNet.Core;
 
 public interface IRoombaSubscriber
 {

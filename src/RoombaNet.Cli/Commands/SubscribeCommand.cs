@@ -1,6 +1,6 @@
 using System.CommandLine;
 using RoombaNet.Cli.Services;
-using RoombaNet.Mqtt;
+using RoombaNet.Core;
 
 namespace RoombaNet.Cli.Commands;
 

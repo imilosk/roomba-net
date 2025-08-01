@@ -1,8 +1,9 @@
 using Microsoft.Extensions.Logging;
 using MQTTnet;
-using RoombaNet.Mqtt.Constants;
+using RoombaNet.Core.Constants;
+using RoombaNet.Transport.Mqtt;
 
-namespace RoombaNet.Mqtt;
+namespace RoombaNet.Core;
 
 public class RoombaSubscriber : IRoombaSubscriber
 {

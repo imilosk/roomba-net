@@ -1,4 +1,4 @@
-namespace RoombaNet.Mqtt;
+namespace RoombaNet.Core;
 
 public interface IRoombaCommandClient
 {

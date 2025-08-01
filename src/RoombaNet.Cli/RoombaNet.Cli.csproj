@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RoombaNet.Mqtt\RoombaNet.Mqtt.csproj" />
+    <ProjectReference Include="..\RoombaNet.Core\RoombaNet.Core.csproj" />
     <ProjectReference Include="..\RoombaNet.Settings\RoombaNet.Settings.csproj" />
   </ItemGroup>
 

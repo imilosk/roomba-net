@@ -2,11 +2,13 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Protocol;
-using RoombaNet.Mqtt.Constants;
-using RoombaNet.Mqtt.Extensions;
-using RoombaNet.Mqtt.Payloads;
+using RoombaNet.Core.Constants;
+using RoombaNet.Core.Extensions;
+using RoombaNet.Core.Payloads;
+using RoombaNet.Transport.Mqtt;
+using RoombaJsonContext = RoombaNet.Core.Payloads.RoombaJsonContext;
 
-namespace RoombaNet.Mqtt;
+namespace RoombaNet.Core;
 
 public class RoombaCommandClient : IRoombaCommandClient
 {
@@ -122,7 +124,7 @@ public class RoombaCommandClient : IRoombaCommandClient
         var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(
             payload,
             payload.GetType(),
-            Payloads.RoombaJsonContext.Default
+            RoombaJsonContext.Default
         );
 
         return await PublishMessage(mqttClient, topic, jsonBytes, cancellationToken);

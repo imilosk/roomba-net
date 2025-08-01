@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace RoombaNet.Mqtt.Payloads;
+namespace RoombaNet.Core.Payloads;
 
 [JsonSerializable(typeof(CommandPayload))]
 [JsonSerializable(typeof(SettingPayload<bool>))]

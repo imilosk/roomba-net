@@ -1,5 +1,5 @@
 using System.CommandLine;
-using RoombaNet.Mqtt;
+using RoombaNet.Core;
 
 namespace RoombaNet.Cli.Commands;
 
@@ -15,6 +15,10 @@ public class ExecuteCommand : Command
     {
         _roombaCommandClient = roombaClient;
         _cancellationToken = cancellationToken;
+
+        Aliases.Add("cmd");
+        Aliases.Add("execute");
+        Aliases.Add("run");
 
         AddSubcommand("find", "Make Roomba beep to locate it", ExecuteFind, "locate");
         AddSubcommand("start", "Start cleaning", ExecuteStart, "clean");

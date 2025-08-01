@@ -1,5 +1,6 @@
 <Solution>
-  <Project Path="src/RoombaNet.Mqtt/RoombaNet.Mqtt.csproj" />
+  <Project Path="src/RoombaNet.Core/RoombaNet.Core.csproj" />
   <Project Path="src/RoombaNet.Cli/RoombaNet.Cli.csproj" />
+  <Project Path="src/RoombaNet.Transport.Mqtt/RoombaNet.Transport.Mqtt.csproj" />
   <Project Path="src/RoombaNet.Settings/RoombaNet.Settings.csproj" />
 </Solution>

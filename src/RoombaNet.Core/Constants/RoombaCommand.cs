@@ -1,4 +1,4 @@
-namespace RoombaNet.Mqtt.Constants;
+namespace RoombaNet.Core.Constants;
 
 internal static class RoombaCommand
 {

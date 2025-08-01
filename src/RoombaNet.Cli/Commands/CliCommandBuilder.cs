@@ -1,4 +1,4 @@
-using RoombaNet.Mqtt;
+using RoombaNet.Core;
 using Command = System.CommandLine.Command;
 
 

@@ -2,9 +2,9 @@ using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Formatter;
 using MQTTnet.Protocol;
-using RoombaNet.Mqtt.Settings;
+using RoombaNet.Transport.Mqtt.Settings;
 
-namespace RoombaNet.Mqtt;
+namespace RoombaNet.Transport.Mqtt;
 
 public class RoombaConnectionManager : IRoombaConnectionManager
 {

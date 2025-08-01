@@ -1,4 +1,4 @@
-namespace RoombaNet.Mqtt.Extensions;
+namespace RoombaNet.Core.Extensions;
 
 public static class TimeExtensions
 {
