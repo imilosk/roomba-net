@@ -5,7 +5,6 @@ using MQTTnet;
 using MQTTnet.Protocol;
 using RoombaNet.Mqtt.Constants;
 using RoombaNet.Mqtt.Extensions;
-using RoombaNet.Mqtt.Settings;
 
 namespace RoombaNet.Mqtt;
 
@@ -136,47 +135,9 @@ public class RoombaClient : IRoombaClient
         }
     }
 
-    private async Task SetSetting(
+    private async Task SetSetting<T>(
         string setting,
-        bool value,
-        CancellationToken cancellationToken = default
-    )
-    {
-        var mqttClient = await _connectionManager.GetClient(cancellationToken);
-
-        var success = await SettingApiCall(mqttClient, setting, value, cancellationToken);
-        if (success)
-        {
-            _logger.LogInformation("Setting '{Setting}' set successfully", setting);
-        }
-        else
-        {
-            _logger.LogError("Failed to set '{Setting}' setting", setting);
-        }
-    }
-
-    private async Task SetSetting(
-        string setting,
-        int value,
-        CancellationToken cancellationToken = default
-    )
-    {
-        var mqttClient = await _connectionManager.GetClient(cancellationToken);
-
-        var success = await SettingApiCall(mqttClient, setting, value, cancellationToken);
-        if (success)
-        {
-            _logger.LogInformation("Setting '{Setting}' set successfully", setting);
-        }
-        else
-        {
-            _logger.LogError("Failed to set '{Setting}' setting", setting);
-        }
-    }
-
-    private async Task SetSetting(
-        string setting,
-        string value,
+        T value,
         CancellationToken cancellationToken = default
     )
     {
