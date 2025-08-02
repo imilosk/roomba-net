@@ -1,5 +1,6 @@
 using System.CommandLine;
 using RoombaNet.Core;
+using RoombaNet.Core.Constants;
 
 namespace RoombaNet.Cli.Commands;
 
@@ -18,6 +19,13 @@ public class SettingCommand : Command
 
         AddBooleanSubcommand("childlock", "Child/Pet Lock", SetChildLock);
         AddBooleanSubcommand("binpause", "Bin Pause", SetBinPause);
+        AddEnumSubcommand<RoombaCleaningPasses>(
+            "cleaningpasses",
+            "Cleaning Passes",
+            SetCleaningPasses,
+            "passes",
+            "pass"
+        );
     }
 
     private void AddBooleanSubcommand(
@@ -53,6 +61,36 @@ public class SettingCommand : Command
         Subcommands.Add(command);
     }
 
+    private void AddEnumSubcommand<TEnum>(
+        string commandName,
+        string description,
+        Func<TEnum, Task> handler,
+        params string[] aliases
+    ) where TEnum : struct, Enum
+    {
+        var command = new Command(commandName, description);
+
+        foreach (var alias in aliases)
+        {
+            command.Aliases.Add(alias);
+        }
+
+        foreach (var value in Enum.GetValues<TEnum>())
+        {
+            var valueCommand = new Command(value.ToString().ToLowerInvariant(), $"Set to {value}");
+            valueCommand.Aliases.Add(Convert.ToInt32(value).ToString());
+            
+            valueCommand.SetAction(async _ => await handler(value));
+
+            command.Subcommands.Add(valueCommand);
+        }
+
+        Subcommands.Add(command);
+    }
+
     private async Task SetChildLock(bool enable) => await _roombaSettingsClient.ChildLock(enable, _cancellationToken);
     private async Task SetBinPause(bool enable) => await _roombaSettingsClient.BinPause(enable, _cancellationToken);
+
+    private async Task SetCleaningPasses(RoombaCleaningPasses passes) =>
+        await _roombaSettingsClient.CleaningPasses(passes, _cancellationToken);
 }

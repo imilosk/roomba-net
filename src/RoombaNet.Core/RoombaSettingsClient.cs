@@ -34,6 +34,27 @@ public class RoombaSettingsClient : IRoombaSettingsClient
         await SetSetting(RoombaSetting.BinPause, enable, cancellationToken);
     }
 
+    public async Task CleaningPasses(RoombaCleaningPasses passes, CancellationToken cancellationToken = default)
+    {
+        switch (passes)
+        {
+            case RoombaCleaningPasses.OnePass:
+                await SetSetting(RoombaSetting.TwoPass, false, cancellationToken);
+                await SetSetting(RoombaSetting.NoAutoPasses, true, cancellationToken);
+                break;
+            case RoombaCleaningPasses.TwoPass:
+                await SetSetting(RoombaSetting.TwoPass, true, cancellationToken);
+                await SetSetting(RoombaSetting.NoAutoPasses, true, cancellationToken);
+                break;
+            case RoombaCleaningPasses.RoomSizeClean:
+                await SetSetting(RoombaSetting.TwoPass, false, cancellationToken);
+                await SetSetting(RoombaSetting.NoAutoPasses, false, cancellationToken);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(passes), passes, null);
+        }
+    }
+
     private async Task SetSetting<T>(
         string setting,
         T value,

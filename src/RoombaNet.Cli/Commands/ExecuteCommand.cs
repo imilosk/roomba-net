@@ -17,8 +17,6 @@ public class ExecuteCommand : Command
         _cancellationToken = cancellationToken;
 
         Aliases.Add("cmd");
-        Aliases.Add("execute");
-        Aliases.Add("run");
 
         AddSubcommand("find", "Make Roomba beep to locate it", ExecuteFind, "locate");
         AddSubcommand("start", "Start cleaning", ExecuteStart, "clean");
