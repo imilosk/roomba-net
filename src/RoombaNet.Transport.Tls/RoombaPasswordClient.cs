@@ -147,7 +147,7 @@ public class RoombaPasswordClient : IRoombaPasswordClient
                 return string.Empty;
             case <= 7:
                 _logger.LogError("Error getting password. Follow the instructions and try again.");
-                return string.Empty;
+                throw new InvalidOperationException("Received data is too short to contain a password");
         }
 
         var passwordBytes = data.Skip(_sliceFrom).ToArray();
