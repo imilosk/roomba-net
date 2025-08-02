@@ -23,9 +23,10 @@ public class SettingCommand : Command
             "cleaningpasses",
             "Cleaning Passes",
             SetCleaningPasses,
-            "passes",
             "pass"
         );
+
+        Aliases.Add("set");
     }
 
     private void AddBooleanSubcommand(
