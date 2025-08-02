@@ -1,14 +1,13 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using MQTTnet;
 using RoombaNet.Settings.Settings;
 
-namespace RoombaNet.Transport.Mqtt;
+namespace RoombaNet.Transport.Tls;
 
 public static class Bootstrapper
 {
-    public static IServiceCollection AddMqtt(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddTls(this IServiceCollection services, IConfiguration configuration)
     {
         var configurationSection = configuration.GetSection(nameof(RoombaSettings));
         var roombaSettings = configurationSection.Get<RoombaSettings>();
@@ -18,7 +17,7 @@ public static class Bootstrapper
             throw new InvalidOperationException($"{nameof(RoombaSettings)} configuration is missing or invalid.")
         );
 
-        services.TryAddSingleton<MqttClientFactory>();
+        services.TryAddSingleton<IRoombaPasswordClient, RoombaPasswordClient>();
 
         return services;
     }

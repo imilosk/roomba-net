@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Formatter;
 using MQTTnet.Protocol;
-using RoombaNet.Transport.Mqtt.Settings;
+using RoombaNet.Settings.Settings;
 
 namespace RoombaNet.Transport.Mqtt;
 

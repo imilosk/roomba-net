@@ -23,7 +23,11 @@ public static class Bootstrapper
 
         var services = new ServiceCollection();
 
-        services.AddLogging(builder => { builder.AddConsole(); });
+        services.AddLogging(builder =>
+        {
+            builder.SetMinimumLevel(LogLevel.Debug);
+            builder.AddConsole();
+        });
 
         services.AddCore(configuration);
 

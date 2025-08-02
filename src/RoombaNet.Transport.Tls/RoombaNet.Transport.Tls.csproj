@@ -11,12 +11,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="9.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.7" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.7" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RoombaNet.Transport.Mqtt\RoombaNet.Transport.Mqtt.csproj" />
-    <ProjectReference Include="..\RoombaNet.Transport.Tls\RoombaNet.Transport.Tls.csproj" />
+    <ProjectReference Include="..\RoombaNet.Settings\RoombaNet.Settings.csproj" />
   </ItemGroup>
 
 </Project>

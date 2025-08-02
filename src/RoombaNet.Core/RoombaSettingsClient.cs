@@ -5,6 +5,7 @@ using MQTTnet.Protocol;
 using RoombaNet.Core.Constants;
 using RoombaNet.Core.Payloads;
 using RoombaNet.Transport.Mqtt;
+using RoombaNet.Transport.Tls;
 using RoombaJsonContext = RoombaNet.Core.Payloads.RoombaJsonContext;
 
 namespace RoombaNet.Core;
@@ -13,15 +14,18 @@ public class RoombaSettingsClient : IRoombaSettingsClient
 {
     private readonly ILogger<RoombaSettingsClient> _logger;
     private readonly IRoombaConnectionManager _connectionManager;
+    private readonly IRoombaPasswordClient _roombaPasswordClient;
     private static readonly MqttApplicationMessageBuilder MessageBuilder = new();
 
     public RoombaSettingsClient(
         ILogger<RoombaSettingsClient> logger,
-        IRoombaConnectionManager connectionManager
+        IRoombaConnectionManager connectionManager,
+        IRoombaPasswordClient roombaPasswordClient
     )
     {
         _logger = logger;
         _connectionManager = connectionManager;
+        _roombaPasswordClient = roombaPasswordClient;
     }
 
     public async Task ChildLock(bool enable, CancellationToken cancellationToken = default)
@@ -32,6 +36,17 @@ public class RoombaSettingsClient : IRoombaSettingsClient
     public async Task BinPause(bool enable, CancellationToken cancellationToken = default)
     {
         await SetSetting(RoombaSetting.BinPause, enable, cancellationToken);
+    }
+
+    public async Task<string> GetPassword(CancellationToken cancellationToken = default)
+    {
+        return await _roombaPasswordClient.GetPassword(cancellationToken);
+    }
+
+    public async Task<string> GetIpAddress(CancellationToken cancellationToken = default)
+    {
+        await Task.CompletedTask;
+        throw new NotImplementedException("GetIpAddress method is not implemented yet.");
     }
 
     public async Task CleaningPasses(RoombaCleaningPasses passes, CancellationToken cancellationToken = default)

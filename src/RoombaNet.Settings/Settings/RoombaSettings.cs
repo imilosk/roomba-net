@@ -1,4 +1,4 @@
-namespace RoombaNet.Transport.Mqtt.Settings;
+namespace RoombaNet.Settings.Settings;
 
 public class RoombaSettings
 {

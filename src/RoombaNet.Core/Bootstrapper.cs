@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using RoombaNet.Transport.Mqtt;
+using RoombaNet.Transport.Tls;
 
 namespace RoombaNet.Core;
 
@@ -12,6 +13,7 @@ public static class Bootstrapper
         services.TryAddSingleton(TimeProvider.System);
 
         services.AddMqtt(configuration);
+        services.AddTls(configuration);
 
         services.TryAddSingleton<IRoombaConnectionManager, RoombaConnectionManager>();
         services.TryAddSingleton<IRoombaCommandClient, RoombaCommandClient>();
