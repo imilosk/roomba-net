@@ -13,7 +13,7 @@ public static class Bootstrapper
         services.TryAddSingleton(TimeProvider.System);
 
         services.AddMqtt(configuration);
-        services.AddTls(configuration);
+        services.AddPasswordClient(configuration);
 
         services.TryAddSingleton<IRoombaConnectionManager, RoombaConnectionManager>();
         services.TryAddSingleton<IRoombaCommandClient, RoombaCommandClient>();

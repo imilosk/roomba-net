@@ -7,7 +7,7 @@ namespace RoombaNet.Transport.Tls;
 
 public static class Bootstrapper
 {
-    public static IServiceCollection AddTls(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddPasswordClient(this IServiceCollection services, IConfiguration configuration)
     {
         var configurationSection = configuration.GetSection(nameof(RoombaSettings));
         var roombaSettings = configurationSection.Get<RoombaSettings>();
