@@ -49,6 +49,12 @@ public class RoombaSettingsClient : IRoombaSettingsClient
         throw new NotImplementedException("GetIpAddress method is not implemented yet.");
     }
 
+    public async Task<string> GetBlid(CancellationToken cancellationToken = default)
+    {
+        await Task.CompletedTask;
+        throw new NotImplementedException("GetBlid method is not implemented yet.");
+    }
+
     public async Task CleaningPasses(RoombaCleaningPasses passes, CancellationToken cancellationToken = default)
     {
         switch (passes)

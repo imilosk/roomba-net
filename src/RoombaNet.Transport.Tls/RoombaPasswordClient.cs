@@ -11,7 +11,7 @@ public class RoombaPasswordClient : IRoombaPasswordClient
 {
     private readonly ILogger<RoombaPasswordClient> _logger;
     private readonly RoombaSettings _roombaSettings;
-    private int _sliceFrom = 9;
+    private const int SliceFrom = 9;
 
     public RoombaPasswordClient(
         ILogger<RoombaPasswordClient> logger,
@@ -28,7 +28,7 @@ public class RoombaPasswordClient : IRoombaPasswordClient
         await SendDiscoveryPacketAsync(sslStream, cancellationToken);
         var password = await ListenForPasswordAsync(sslStream, cancellationToken);
 
-        sslStream.Dispose();
+        await sslStream.DisposeAsync();
         tcpClient.Dispose();
 
         return password;
@@ -43,9 +43,7 @@ public class RoombaPasswordClient : IRoombaPasswordClient
 
         var sslStream = new SslStream(
             tcpClient.GetStream(),
-            false,
-            ValidateServerCertificate,
-            null
+            false
         );
 
         var sslOptions = new SslClientAuthenticationOptions
@@ -142,7 +140,6 @@ public class RoombaPasswordClient : IRoombaPasswordClient
         switch (data.Length)
         {
             case 2:
-                _sliceFrom = 9;
                 _logger.LogDebug("Received 2-byte response, setting slice position to 9");
                 return string.Empty;
             case <= 7:
@@ -150,7 +147,7 @@ public class RoombaPasswordClient : IRoombaPasswordClient
                 throw new InvalidOperationException("Received data is too short to contain a password");
         }
 
-        var passwordBytes = data.Skip(_sliceFrom).ToArray();
+        var passwordBytes = data.Skip(SliceFrom).ToArray();
         var password = Encoding.UTF8.GetString(passwordBytes);
 
         return password;
