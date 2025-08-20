@@ -1,41 +1,62 @@
+using Microsoft.OpenApi.Models;
+using RoombaNet.Api.Endpoints;
+using RoombaNet.Api.Services;
+using RoombaNet.Core;
+
 var builder = WebApplication.CreateBuilder(args);
+var environment = builder.Environment.EnvironmentName;
+
+// Add configuration sources to load secrets file
+builder.Configuration
+    .AddJsonFile("appsettings.json", false)
+    .AddJsonFile($"appsettings.{environment}.json", true)
+    .AddJsonFile($"secrets.{environment}.json", true)
+    .AddEnvironmentVariables()
+    .Build();
 
 // Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "RoombaNet API",
+        Version = "v1",
+        Description = "API for controlling Roomba vacuum cleaner",
+    });
+});
+
+// Add RoombaNet Core services
+builder.Services.AddCore(builder.Configuration);
+
+// Add API services
+builder.Services.AddScoped<IRoombaApiService, RoombaApiService>();
+
+// Add CORS if needed
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+    });
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "RoombaNet API v1");
+    c.RoutePrefix = string.Empty; // Serve Swagger at root
+});
+
 
 app.UseHttpsRedirection();
+app.UseCors();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+// Map Roomba endpoints
+app.MapRoombaEndpoints();
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary);
