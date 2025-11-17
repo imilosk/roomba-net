@@ -80,7 +80,7 @@ public class SettingCommand : Command
         {
             var valueCommand = new Command(value.ToString().ToLowerInvariant(), $"Set to {value}");
             valueCommand.Aliases.Add(Convert.ToInt32(value).ToString());
-            
+
             valueCommand.SetAction(async _ => await handler(value));
 
             command.Subcommands.Add(valueCommand);
@@ -89,8 +89,10 @@ public class SettingCommand : Command
         Subcommands.Add(command);
     }
 
-    private async Task SetChildLock(bool enable) => await _roombaSettingsClient.ChildLock(enable, _cancellationToken);
-    private async Task SetBinPause(bool enable) => await _roombaSettingsClient.BinPause(enable, _cancellationToken);
+    private async Task SetChildLock(bool enable) =>
+        await _roombaSettingsClient.SetChildLock(enable, _cancellationToken);
+
+    private async Task SetBinPause(bool enable) => await _roombaSettingsClient.SetBinPause(enable, _cancellationToken);
 
     private async Task SetCleaningPasses(RoombaCleaningPasses passes) =>
         await _roombaSettingsClient.CleaningPasses(passes, _cancellationToken);

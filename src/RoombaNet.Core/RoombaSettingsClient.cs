@@ -28,12 +28,12 @@ public class RoombaSettingsClient : IRoombaSettingsClient
         _roombaPasswordClient = roombaPasswordClient;
     }
 
-    public async Task ChildLock(bool enable, CancellationToken cancellationToken = default)
+    public async Task SetChildLock(bool enable, CancellationToken cancellationToken = default)
     {
         await SetSetting(RoombaSetting.ChildLock, enable, cancellationToken);
     }
 
-    public async Task BinPause(bool enable, CancellationToken cancellationToken = default)
+    public async Task SetBinPause(bool enable, CancellationToken cancellationToken = default)
     {
         await SetSetting(RoombaSetting.BinPause, enable, cancellationToken);
     }
