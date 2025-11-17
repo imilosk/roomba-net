@@ -20,7 +20,7 @@ A .NET application for local control of iRobot Roomba devices via MQTT, without 
 
 ### Prerequisites
 
-- .NET 9.0 or later
+- .NET 10.0 or later
 - Roomba connected to your local network
 - Roomba BLID and password (see configuration section)
 

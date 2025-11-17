@@ -9,8 +9,7 @@ public static class RoombaEndpoints
     public static void MapRoombaEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/roomba")
-            .WithTags("Roomba Commands")
-            .WithOpenApi();
+            .WithTags("Roomba Commands");
 
         // Execute individual command
         group.MapPost("/commands/{command}", async (

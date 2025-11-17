@@ -1,4 +1,3 @@
-using Microsoft.OpenApi.Models;
 using RoombaNet.Api.Endpoints;
 using RoombaNet.Api.Services;
 using RoombaNet.Core;
@@ -16,15 +15,7 @@ builder.Configuration
 
 // Add services to the container.
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "RoombaNet API",
-        Version = "v1",
-        Description = "API for controlling Roomba vacuum cleaner",
-    });
-});
+builder.Services.AddOpenApi();
 
 // Add RoombaNet Core services
 builder.Services.AddCore(builder.Configuration);
@@ -45,13 +36,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "RoombaNet API v1");
-    c.RoutePrefix = string.Empty; // Serve Swagger at root
-});
-
+app.MapOpenApi();
 
 app.UseHttpsRedirection();
 app.UseCors();
@@ -59,4 +44,4 @@ app.UseCors();
 // Map Roomba endpoints
 app.MapRoombaEndpoints();
 
-app.Run();
+await app.RunAsync();
