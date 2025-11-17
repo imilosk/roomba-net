@@ -1,6 +1,7 @@
 using RoombaNet.Api.Endpoints;
 using RoombaNet.Api.Services;
 using RoombaNet.Core;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 var environment = builder.Environment.EnvironmentName;
@@ -32,6 +33,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.MapOpenApi();
+app.MapScalarApiReference();
 
 app.UseHttpsRedirection();
 app.UseCors();
