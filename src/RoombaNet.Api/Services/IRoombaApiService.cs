@@ -11,4 +11,8 @@ public interface IRoombaApiService
 
     Task<AvailableCommandsResponse> GetAvailableCommandsAsync();
     Task<HealthCheckResponse> GetHealthStatusAsync(CancellationToken cancellationToken = default);
+
+    Task<SettingsResponse> SetChildLockAsync(bool enable, CancellationToken cancellationToken = default);
+    Task<SettingsResponse> SetBinPauseAsync(bool enable, CancellationToken cancellationToken = default);
+    Task<SettingsResponse> SetCleaningPassesAsync(int passes, CancellationToken cancellationToken = default);
 }

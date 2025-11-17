@@ -8,9 +8,18 @@ public static class RoombaEndpoints
 {
     public static void MapRoombaEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/roomba")
+        var commandsGroup = app.MapGroup("/api/roomba")
             .WithTags("Roomba Commands");
 
+        var settingsGroup = app.MapGroup("/api/roomba/settings")
+            .WithTags("Roomba Settings");
+
+        MapCommandEndpoints(commandsGroup);
+        MapSettingsEndpoints(settingsGroup);
+    }
+
+    private static void MapCommandEndpoints(RouteGroupBuilder group)
+    {
         // Execute individual command
         group.MapPost("/commands/{command}", async (
                 string command,
@@ -197,5 +206,50 @@ public static class RoombaEndpoints
             .WithDescription("Start a training run to help the Roomba learn the space")
             .Produces<CommandResponse>()
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
+    }
+
+    private static void MapSettingsEndpoints(RouteGroupBuilder group)
+    {
+        group.MapPost("/child-lock", async (
+                [FromBody] EnableSettingRequest request,
+                IRoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetChildLockAsync(request.Enable, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetChildLock")
+            .WithSummary("Set child lock")
+            .WithDescription("Enable or disable the child lock feature to prevent unwanted button presses")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/bin-pause", async (
+                [FromBody] EnableSettingRequest request,
+                IRoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetBinPauseAsync(request.Enable, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetBinPause")
+            .WithSummary("Set bin pause")
+            .WithDescription("Enable or disable bin pause - pauses cleaning when the bin is full")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/cleaning-passes", async (
+                [FromBody] CleaningPassesRequest request,
+                IRoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetCleaningPassesAsync(request.Passes, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetCleaningPasses")
+            .WithSummary("Set cleaning passes")
+            .WithDescription("Set the number of cleaning passes: 1 (OnePass), 2 (TwoPass), or 3 (RoomSizeClean/Auto)")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
     }
 }

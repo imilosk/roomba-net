@@ -1,11 +1,13 @@
 using RoombaNet.Api.Models;
 using RoombaNet.Core;
+using RoombaNet.Core.Constants;
 
 namespace RoombaNet.Api.Services;
 
 public class RoombaApiService : IRoombaApiService
 {
     private readonly IRoombaCommandClient _commandClient;
+    private readonly IRoombaSettingsClient _settingsClient;
     private readonly ILogger<RoombaApiService> _logger;
     private readonly TimeProvider _timeProvider;
 
@@ -16,10 +18,12 @@ public class RoombaApiService : IRoombaApiService
 
     public RoombaApiService(
         IRoombaCommandClient commandClient,
+        IRoombaSettingsClient settingsClient,
         ILogger<RoombaApiService> logger,
         TimeProvider timeProvider)
     {
         _commandClient = commandClient;
+        _settingsClient = settingsClient;
         _logger = logger;
         _timeProvider = timeProvider;
     }
@@ -241,5 +245,153 @@ public class RoombaApiService : IRoombaApiService
     private static bool IsValidCommand(string command)
     {
         return AvailableCommands.Contains(command.ToLowerInvariant());
+    }
+
+    public async Task<SettingsResponse> SetChildLockAsync(bool enable, CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            _logger.LogInformation(
+                "Setting child lock to '{Enable}' with execution ID '{ExecutionId}'",
+                enable,
+                executionId
+            );
+
+            await _settingsClient.SetChildLock(enable, cancellationToken);
+
+            var successMessage = $"Child lock {(enable ? "enabled" : "disabled")} successfully";
+            _logger.LogInformation(successMessage);
+
+            return new SettingsResponse(
+                Success: true,
+                Setting: "ChildLock",
+                Message: successMessage,
+                Timestamp: timestamp,
+                ExecutionId: executionId
+            );
+        }
+        catch (Exception ex)
+        {
+            var errorMessage = $"Failed to set child lock to '{enable}'";
+            _logger.LogError(ex, errorMessage);
+
+            return new SettingsResponse(
+                Success: false,
+                Setting: "ChildLock",
+                Message: errorMessage,
+                Timestamp: timestamp,
+                ExecutionId: executionId,
+                Error: ex.GetType().Name,
+                Details: ex.Message
+            );
+        }
+    }
+
+    public async Task<SettingsResponse> SetBinPauseAsync(bool enable, CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            _logger.LogInformation(
+                "Setting bin pause to '{Enable}' with execution ID '{ExecutionId}'",
+                enable,
+                executionId
+            );
+
+            await _settingsClient.SetBinPause(enable, cancellationToken);
+
+            var successMessage = $"Bin pause {(enable ? "enabled" : "disabled")} successfully";
+            _logger.LogInformation(successMessage);
+
+            return new SettingsResponse(
+                Success: true,
+                Setting: "BinPause",
+                Message: successMessage,
+                Timestamp: timestamp,
+                ExecutionId: executionId
+            );
+        }
+        catch (Exception ex)
+        {
+            var errorMessage = $"Failed to set bin pause to '{enable}'";
+            _logger.LogError(ex, errorMessage);
+
+            return new SettingsResponse(
+                Success: false,
+                Setting: "BinPause",
+                Message: errorMessage,
+                Timestamp: timestamp,
+                ExecutionId: executionId,
+                Error: ex.GetType().Name,
+                Details: ex.Message
+            );
+        }
+    }
+
+    public async Task<SettingsResponse> SetCleaningPassesAsync(int passes,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            _logger.LogInformation(
+                "Setting cleaning passes to '{Passes}' with execution ID '{ExecutionId}'",
+                passes,
+                executionId
+            );
+
+            if (!Enum.IsDefined(typeof(RoombaCleaningPasses), passes))
+            {
+                var invalidMessage =
+                    $"Invalid cleaning passes value: {passes}. Valid values are 1 (OnePass), 2 (TwoPass), or 3 (RoomSizeClean)";
+                _logger.LogWarning(invalidMessage);
+
+                return new SettingsResponse(
+                    Success: false,
+                    Setting: "CleaningPasses",
+                    Message: invalidMessage,
+                    Timestamp: timestamp,
+                    ExecutionId: executionId,
+                    Error: "InvalidValue",
+                    Details: "Valid values: 1, 2, or 3"
+                );
+            }
+
+            var cleaningPasses = (RoombaCleaningPasses)passes;
+            await _settingsClient.CleaningPasses(cleaningPasses, cancellationToken);
+
+            var successMessage = $"Cleaning passes set to {cleaningPasses} successfully";
+            _logger.LogInformation(successMessage);
+
+            return new SettingsResponse(
+                Success: true,
+                Setting: "CleaningPasses",
+                Message: successMessage,
+                Timestamp: timestamp,
+                ExecutionId: executionId
+            );
+        }
+        catch (Exception ex)
+        {
+            var errorMessage = $"Failed to set cleaning passes to '{passes}'";
+            _logger.LogError(ex, errorMessage);
+
+            return new SettingsResponse(
+                Success: false,
+                Setting: "CleaningPasses",
+                Message: errorMessage,
+                Timestamp: timestamp,
+                ExecutionId: executionId,
+                Error: ex.GetType().Name,
+                Details: ex.Message
+            );
+        }
     }
 }
