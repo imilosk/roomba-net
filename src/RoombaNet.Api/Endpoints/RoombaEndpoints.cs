@@ -79,5 +79,123 @@ public static class RoombaEndpoints
             .WithDescription("Returns the health status of the Roomba service")
             .Produces<HealthCheckResponse>()
             .Produces(StatusCodes.Status503ServiceUnavailable);
+
+        // Dedicated command endpoints
+        group.MapPost("/start", async (
+                IRoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.ExecuteCommandAsync("start", cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("StartCleaning")
+            .WithSummary("Start cleaning")
+            .WithDescription("Start the Roomba cleaning cycle")
+            .Produces<CommandResponse>()
+            .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/stop", async (
+                IRoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.ExecuteCommandAsync("stop", cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("StopCleaning")
+            .WithSummary("Stop cleaning")
+            .WithDescription("Stop the Roomba and cancel the current cleaning cycle")
+            .Produces<CommandResponse>()
+            .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/pause", async (
+                IRoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.ExecuteCommandAsync("pause", cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("PauseCleaning")
+            .WithSummary("Pause cleaning")
+            .WithDescription("Pause the current cleaning cycle")
+            .Produces<CommandResponse>()
+            .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/resume", async (
+                IRoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.ExecuteCommandAsync("resume", cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("ResumeCleaning")
+            .WithSummary("Resume cleaning")
+            .WithDescription("Resume a paused cleaning cycle")
+            .Produces<CommandResponse>()
+            .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/dock", async (
+                IRoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.ExecuteCommandAsync("dock", cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("DockRoomba")
+            .WithSummary("Return to dock")
+            .WithDescription("Send the Roomba back to its charging dock")
+            .Produces<CommandResponse>()
+            .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/find", async (
+                IRoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.ExecuteCommandAsync("find", cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("FindRoomba")
+            .WithSummary("Find Roomba")
+            .WithDescription("Play a sound to help locate the Roomba")
+            .Produces<CommandResponse>()
+            .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/evac", async (
+                IRoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.ExecuteCommandAsync("evac", cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("EvacuateBin")
+            .WithSummary("Evacuate bin")
+            .WithDescription("Empty the Roomba's bin into the Clean Base (if available)")
+            .Produces<CommandResponse>()
+            .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/reset", async (
+                IRoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.ExecuteCommandAsync("reset", cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("ResetRoomba")
+            .WithSummary("Reset Roomba")
+            .WithDescription("Reset the Roomba to factory settings")
+            .Produces<CommandResponse>()
+            .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/train", async (
+                IRoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.ExecuteCommandAsync("train", cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("TrainRoomba")
+            .WithSummary("Train Roomba")
+            .WithDescription("Start a training run to help the Roomba learn the space")
+            .Produces<CommandResponse>()
+            .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
     }
 }
