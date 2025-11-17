@@ -4,7 +4,7 @@ using RoombaNet.Core.Constants;
 
 namespace RoombaNet.Api.Services;
 
-public class RoombaApiService : IRoombaApiService
+public class RoombaApiService
 {
     private readonly IRoombaCommandClient _commandClient;
     private readonly IRoombaSettingsClient _settingsClient;

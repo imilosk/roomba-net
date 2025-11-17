@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using RoombaNet.Api.Models;
 using RoombaNet.Api.Services;
@@ -14,8 +15,12 @@ public static class RoombaEndpoints
         var settingsGroup = app.MapGroup("/api/roomba/settings")
             .WithTags("Roomba Settings");
 
+        var statusGroup = app.MapGroup("/api/roomba/status")
+            .WithTags("Roomba Status");
+
         MapCommandEndpoints(commandsGroup);
         MapSettingsEndpoints(settingsGroup);
+        MapStatusEndpoints(statusGroup);
     }
 
     private static void MapCommandEndpoints(RouteGroupBuilder group)
@@ -23,7 +28,7 @@ public static class RoombaEndpoints
         // Execute individual command
         group.MapPost("/commands/{command}", async (
                 string command,
-                IRoombaApiService roombaService,
+                RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
                 var result = await roombaService.ExecuteCommandAsync(command, cancellationToken);
@@ -43,7 +48,7 @@ public static class RoombaEndpoints
         // Execute batch commands
         group.MapPost("/commands/batch", async (
                 [FromBody] BatchCommandRequest request,
-                IRoombaApiService roombaService,
+                RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
                 var result = await roombaService.ExecuteBatchCommandsAsync(request, cancellationToken);
@@ -60,7 +65,7 @@ public static class RoombaEndpoints
             .Produces<BatchCommandResponse>(StatusCodes.Status500InternalServerError);
 
         // Get available commands
-        group.MapGet("/commands", async (IRoombaApiService roombaService) =>
+        group.MapGet("/commands", async (RoombaApiService roombaService) =>
             {
                 var result = await roombaService.GetAvailableCommandsAsync();
                 return Results.Ok(result);
@@ -72,7 +77,7 @@ public static class RoombaEndpoints
 
         // Health check
         group.MapGet("/health", async (
-                IRoombaApiService roombaService,
+                RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
                 var result = await roombaService.GetHealthStatusAsync(cancellationToken);
@@ -91,7 +96,7 @@ public static class RoombaEndpoints
 
         // Dedicated command endpoints
         group.MapPost("/start", async (
-                IRoombaApiService roombaService,
+                RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
                 var result = await roombaService.ExecuteCommandAsync("start", cancellationToken);
@@ -104,7 +109,7 @@ public static class RoombaEndpoints
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
 
         group.MapPost("/stop", async (
-                IRoombaApiService roombaService,
+                RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
                 var result = await roombaService.ExecuteCommandAsync("stop", cancellationToken);
@@ -117,7 +122,7 @@ public static class RoombaEndpoints
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
 
         group.MapPost("/pause", async (
-                IRoombaApiService roombaService,
+                RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
                 var result = await roombaService.ExecuteCommandAsync("pause", cancellationToken);
@@ -130,7 +135,7 @@ public static class RoombaEndpoints
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
 
         group.MapPost("/resume", async (
-                IRoombaApiService roombaService,
+                RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
                 var result = await roombaService.ExecuteCommandAsync("resume", cancellationToken);
@@ -143,7 +148,7 @@ public static class RoombaEndpoints
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
 
         group.MapPost("/dock", async (
-                IRoombaApiService roombaService,
+                RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
                 var result = await roombaService.ExecuteCommandAsync("dock", cancellationToken);
@@ -156,7 +161,7 @@ public static class RoombaEndpoints
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
 
         group.MapPost("/find", async (
-                IRoombaApiService roombaService,
+                RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
                 var result = await roombaService.ExecuteCommandAsync("find", cancellationToken);
@@ -169,7 +174,7 @@ public static class RoombaEndpoints
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
 
         group.MapPost("/evac", async (
-                IRoombaApiService roombaService,
+                RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
                 var result = await roombaService.ExecuteCommandAsync("evac", cancellationToken);
@@ -182,7 +187,7 @@ public static class RoombaEndpoints
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
 
         group.MapPost("/reset", async (
-                IRoombaApiService roombaService,
+                RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
                 var result = await roombaService.ExecuteCommandAsync("reset", cancellationToken);
@@ -195,7 +200,7 @@ public static class RoombaEndpoints
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
 
         group.MapPost("/train", async (
-                IRoombaApiService roombaService,
+                RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
                 var result = await roombaService.ExecuteCommandAsync("train", cancellationToken);
@@ -212,7 +217,7 @@ public static class RoombaEndpoints
     {
         group.MapPost("/child-lock", async (
                 [FromBody] EnableSettingRequest request,
-                IRoombaApiService roombaService,
+                RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
                 var result = await roombaService.SetChildLockAsync(request.Enable, cancellationToken);
@@ -226,7 +231,7 @@ public static class RoombaEndpoints
 
         group.MapPost("/bin-pause", async (
                 [FromBody] EnableSettingRequest request,
-                IRoombaApiService roombaService,
+                RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
                 var result = await roombaService.SetBinPauseAsync(request.Enable, cancellationToken);
@@ -240,7 +245,7 @@ public static class RoombaEndpoints
 
         group.MapPost("/cleaning-passes", async (
                 [FromBody] CleaningPassesRequest request,
-                IRoombaApiService roombaService,
+                RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
                 var result = await roombaService.SetCleaningPassesAsync(request.Passes, cancellationToken);
@@ -251,5 +256,42 @@ public static class RoombaEndpoints
             .WithDescription("Set the number of cleaning passes: 1 (OnePass), 2 (TwoPass), or 3 (RoomSizeClean/Auto)")
             .Produces<SettingsResponse>()
             .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+    }
+
+    private static void MapStatusEndpoints(RouteGroupBuilder group)
+    {
+        group.MapGet("/stream", async (
+                RoombaStatusService statusService,
+                HttpContext context,
+                CancellationToken cancellationToken) =>
+            {
+                context.Response.Headers.Append("Content-Type", "text/event-stream");
+                context.Response.Headers.Append("Cache-Control", "no-cache");
+                context.Response.Headers.Append("Connection", "keep-alive");
+
+                await context.Response.Body.FlushAsync(cancellationToken);
+
+                try
+                {
+                    await foreach (var update in statusService.StatusUpdates.ReadAllAsync(cancellationToken))
+                    {
+                        var json = JsonSerializer.Serialize(update);
+                        var message = $"event: status\ndata: {json}\n\n";
+                        var bytes = System.Text.Encoding.UTF8.GetBytes(message);
+
+                        await context.Response.Body.WriteAsync(bytes, cancellationToken);
+                        await context.Response.Body.FlushAsync(cancellationToken);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Client disconnected, this is normal
+                }
+            })
+            .WithName("StreamRoombaStatus")
+            .WithSummary("Stream real-time Roomba status updates")
+            .WithDescription(
+                "Server-Sent Events (SSE) endpoint that streams real-time status updates from the Roomba MQTT connection")
+            .ExcludeFromDescription(); // SSE endpoints don't work well in OpenAPI docs
     }
 }

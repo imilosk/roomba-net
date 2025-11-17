@@ -18,7 +18,9 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddCore(builder.Configuration);
 
-builder.Services.AddScoped<IRoombaApiService, RoombaApiService>();
+builder.Services.AddScoped<RoombaApiService>();
+builder.Services.AddSingleton<RoombaStatusService>();
+builder.Services.AddHostedService<RoombaStatusService>();
 
 builder.Services.AddCors(options =>
 {
