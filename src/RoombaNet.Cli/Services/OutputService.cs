@@ -2,7 +2,7 @@ using MQTTnet;
 
 namespace RoombaNet.Cli.Services;
 
-public static class OutputService
+public class OutputService
 {
     public static void PrintMessage(MqttApplicationMessageReceivedEventArgs e)
     {

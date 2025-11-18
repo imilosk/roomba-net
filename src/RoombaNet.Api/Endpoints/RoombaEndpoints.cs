@@ -263,6 +263,7 @@ public static class RoombaEndpoints
         group.MapGet("/stream", async (
                 RoombaStatusService statusService,
                 HttpContext context,
+                ILogger<RoombaApiService> logger,
                 CancellationToken cancellationToken) =>
             {
                 context.Response.Headers.Append("Content-Type", "text/event-stream");
@@ -279,13 +280,16 @@ public static class RoombaEndpoints
                         var message = $"event: status\ndata: {json}\n\n";
                         var bytes = System.Text.Encoding.UTF8.GetBytes(message);
 
+                        logger.LogDebug("Sending status update: {Message}", message);
+
                         await context.Response.Body.WriteAsync(bytes, cancellationToken);
                         await context.Response.Body.FlushAsync(cancellationToken);
                     }
                 }
-                catch (OperationCanceledException)
+                catch (OperationCanceledException ex)
                 {
                     // Client disconnected, this is normal
+                    logger.LogInformation(ex, "Client disconnected from status stream");
                 }
             })
             .WithName("StreamRoombaStatus")
