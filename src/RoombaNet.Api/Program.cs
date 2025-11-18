@@ -20,7 +20,7 @@ builder.Services.AddCore(builder.Configuration);
 
 builder.Services.AddScoped<RoombaApiService>();
 builder.Services.AddSingleton<RoombaStatusService>();
-builder.Services.AddHostedService<RoombaStatusService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<RoombaStatusService>());
 
 builder.Services.AddCors(options =>
 {

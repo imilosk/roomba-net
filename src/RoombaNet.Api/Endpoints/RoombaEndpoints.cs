@@ -279,17 +279,15 @@ public static class RoombaEndpoints
                         var json = JsonSerializer.Serialize(update);
                         var message = $"event: status\ndata: {json}\n\n";
                         var bytes = System.Text.Encoding.UTF8.GetBytes(message);
-
-                        logger.LogDebug("Sending status update: {Message}", message);
-
+                        
                         await context.Response.Body.WriteAsync(bytes, cancellationToken);
                         await context.Response.Body.FlushAsync(cancellationToken);
                     }
                 }
-                catch (OperationCanceledException ex)
+                catch (OperationCanceledException)
                 {
                     // Client disconnected, this is normal
-                    logger.LogInformation(ex, "Client disconnected from status stream");
+                    logger.LogInformation("Client disconnected from status stream");
                 }
             })
             .WithName("StreamRoombaStatus")
