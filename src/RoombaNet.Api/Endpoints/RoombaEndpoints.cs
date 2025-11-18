@@ -274,6 +274,21 @@ public static class RoombaEndpoints
 
                 try
                 {
+                    // Send the last known status immediately when client connects
+                    var lastStatus = statusService.GetLastStatus();
+                    if (lastStatus != null)
+                    {
+                        var json = JsonSerializer.Serialize(lastStatus);
+                        var message = $"event: status\ndata: {json}\n\n";
+                        var bytes = System.Text.Encoding.UTF8.GetBytes(message);
+                        
+                        await context.Response.Body.WriteAsync(bytes, cancellationToken);
+                        await context.Response.Body.FlushAsync(cancellationToken);
+                        
+                        logger.LogDebug("Sent last known status to new client");
+                    }
+
+                    // Then stream new updates as they arrive
                     await foreach (var update in statusService.StatusUpdates.ReadAllAsync(cancellationToken))
                     {
                         var json = JsonSerializer.Serialize(update);

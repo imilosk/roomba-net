@@ -1,16 +1,20 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Channels;
 using RoombaNet.Api.Models;
 using RoombaNet.Core;
 
 namespace RoombaNet.Api.Services;
 
-public class RoombaStatusService : BackgroundService
+public partial class RoombaStatusService : BackgroundService
 {
     private readonly IRoombaSubscriber _subscriber;
     private readonly ILogger<RoombaStatusService> _logger;
     private readonly TimeProvider _timeProvider;
     private readonly Channel<RoombaStatusUpdate> _statusChannel;
+    private RoombaStatusUpdate _lastStatusUpdate = new(string.Empty, string.Empty, DateTime.MinValue);
+    [GeneratedRegex(@"^\$aws/things/.+/shadow/update$")]
+    private static partial Regex ShadowUpdateTopicRegex();
 
     public RoombaStatusService(
         IRoombaSubscriber subscriber,
@@ -32,6 +36,11 @@ public class RoombaStatusService : BackgroundService
 
     public ChannelReader<RoombaStatusUpdate> StatusUpdates => _statusChannel.Reader;
 
+    public RoombaStatusUpdate GetLastStatus()
+    {
+        return _lastStatusUpdate;
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Roomba Status Service starting...");
@@ -46,13 +55,16 @@ public class RoombaStatusService : BackgroundService
 
                 var statusUpdate = new RoombaStatusUpdate(topic, payload, timestamp);
 
-                // Try to write to channel, but don't block if channel is full
+                if (ShadowUpdateTopicRegex().IsMatch(topic))
+                {
+                    _lastStatusUpdate = statusUpdate;
+                }
+
                 _statusChannel.Writer.TryWrite(statusUpdate);
 
                 _logger.LogDebug("Received status update on topic '{Topic}'", topic);
             }, stoppingToken);
 
-            // Keep the service running
             await Task.Delay(Timeout.Infinite, stoppingToken);
         }
         catch (OperationCanceledException ex)
@@ -62,7 +74,6 @@ public class RoombaStatusService : BackgroundService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Roomba Status Service encountered an error and will stop.");
-            // Service will stop, let the host handle the restart policy
         }
         finally
         {
