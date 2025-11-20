@@ -44,6 +44,45 @@ public partial class RoombaStatusService : BackgroundService
         return _lastStatusUpdate;
     }
 
+    private static JsonElement DeepMergeJson(JsonElement target, JsonElement source)
+    {
+        if (target.ValueKind == JsonValueKind.Undefined || target.ValueKind == JsonValueKind.Null)
+        {
+            return source.Clone();
+        }
+
+        if (source.ValueKind != JsonValueKind.Object || target.ValueKind != JsonValueKind.Object)
+        {
+            return source.Clone();
+        }
+
+        var merged = new Dictionary<string, JsonElement>();
+
+        // Copy all properties from target
+        foreach (var property in target.EnumerateObject())
+        {
+            merged[property.Name] = property.Value.Clone();
+        }
+
+        // Merge or override with properties from source
+        foreach (var property in source.EnumerateObject())
+        {
+            if (merged.TryGetValue(property.Name, out var existingValue))
+            {
+                // Recursively merge if both are objects
+                merged[property.Name] = DeepMergeJson(existingValue, property.Value);
+            }
+            else
+            {
+                merged[property.Name] = property.Value.Clone();
+            }
+        }
+
+        // Convert dictionary back to JsonElement
+        var jsonString = JsonSerializer.Serialize(merged);
+        return JsonDocument.Parse(jsonString).RootElement.Clone();
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Roomba Status Service starting...");
@@ -71,7 +110,8 @@ public partial class RoombaStatusService : BackgroundService
 
                 if (ShadowUpdateTopicRegex().IsMatch(topic))
                 {
-                    _lastStatusUpdate = statusUpdate;
+                    var mergedPayload = DeepMergeJson(_lastStatusUpdate.Payload, payloadJson);
+                    _lastStatusUpdate = new RoombaStatusUpdate(topic, mergedPayload, timestamp);
                 }
 
                 _statusChannel.Writer.TryWrite(statusUpdate);
