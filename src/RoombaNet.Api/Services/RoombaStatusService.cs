@@ -1,5 +1,7 @@
+
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Text.Json;
 using System.Threading.Channels;
 using RoombaNet.Api.Models;
 using RoombaNet.Core;
@@ -12,7 +14,8 @@ public partial class RoombaStatusService : BackgroundService
     private readonly ILogger<RoombaStatusService> _logger;
     private readonly TimeProvider _timeProvider;
     private readonly Channel<RoombaStatusUpdate> _statusChannel;
-    private RoombaStatusUpdate _lastStatusUpdate = new(string.Empty, string.Empty, DateTime.MinValue);
+    private RoombaStatusUpdate _lastStatusUpdate = new(string.Empty, default, DateTime.MinValue);
+
     [GeneratedRegex(@"^\$aws/things/.+/shadow/update$")]
     private static partial Regex ShadowUpdateTopicRegex();
 
@@ -50,10 +53,21 @@ public partial class RoombaStatusService : BackgroundService
             await _subscriber.Subscribe(messageEvent =>
             {
                 var topic = messageEvent.ApplicationMessage.Topic;
-                var payload = Encoding.UTF8.GetString(messageEvent.ApplicationMessage.Payload);
+                var payloadString = Encoding.UTF8.GetString(messageEvent.ApplicationMessage.Payload);
                 var timestamp = _timeProvider.GetUtcNow().DateTime;
 
-                var statusUpdate = new RoombaStatusUpdate(topic, payload, timestamp);
+                JsonElement payloadJson;
+                try
+                {
+                    payloadJson = JsonDocument.Parse(payloadString).RootElement.Clone();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to parse payload as JSON. Storing as raw string.");
+                    payloadJson = JsonDocument.Parse($"\"{payloadString.Replace("\"", "\\\"")}\"").RootElement.Clone();
+                }
+
+                var statusUpdate = new RoombaStatusUpdate(topic, payloadJson, timestamp);
 
                 if (ShadowUpdateTopicRegex().IsMatch(topic))
                 {

@@ -1,7 +1,9 @@
 namespace RoombaNet.Api.Models;
 
+using System.Text.Json;
+
 public record RoombaStatusUpdate(
     string Topic,
-    string Payload,
+    JsonElement Payload,
     DateTime Timestamp
 );

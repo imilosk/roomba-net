@@ -295,6 +295,8 @@ public static class RoombaEndpoints
 
                         await context.Response.Body.WriteAsync(bytes, cancellationToken);
                         await context.Response.Body.FlushAsync(cancellationToken);
+
+                        logger.LogDebug("Sent last known status to new client {Message}", message);
                     }
                 }
                 catch (OperationCanceledException)
