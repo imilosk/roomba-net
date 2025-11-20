@@ -14,7 +14,7 @@ public partial class RoombaStatusService : BackgroundService
     private readonly ILogger<RoombaStatusService> _logger;
     private readonly TimeProvider _timeProvider;
     private readonly Channel<RoombaStatusUpdate> _statusChannel;
-    private RoombaStatusUpdate _lastStatusUpdate = new(string.Empty, "{}", DateTime.MinValue);
+    private readonly RoombaStatusUpdate _lastStatusUpdate = new("{}", DateTime.MinValue);
 
     [GeneratedRegex(@"^\$aws/things/.+/shadow/update$")]
     private static partial Regex ShadowUpdateTopicRegex();
@@ -70,14 +70,12 @@ public partial class RoombaStatusService : BackgroundService
             merged[property.Name] = property.Value.Clone();
         }
 
-        // Merge or override with properties from source
         foreach (var property in source.EnumerateObject())
         {
             if (merged.TryGetValue(property.Name, out var existingValue) &&
                 property.Value.ValueKind == JsonValueKind.Object &&
                 existingValue.ValueKind == JsonValueKind.Object)
             {
-                // Recursively merge if both are objects
                 var existingJson = JsonSerializer.Serialize(existingValue);
                 var newJson = JsonSerializer.Serialize(property.Value);
                 var mergedJson = DeepMergeJson(existingJson, newJson);
@@ -101,31 +99,21 @@ public partial class RoombaStatusService : BackgroundService
             await _subscriber.Subscribe(messageEvent =>
             {
                 var topic = messageEvent.ApplicationMessage.Topic;
-                var payloadString = Encoding.UTF8.GetString(messageEvent.ApplicationMessage.Payload);
-                var timestamp = _timeProvider.GetUtcNow().DateTime;
-
-                string payloadJson;
-                try
-                {
-                    // Validate it's valid JSON
-                    using var testDoc = JsonDocument.Parse(payloadString);
-                    payloadJson = payloadString;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to parse payload as JSON. Storing as escaped string.");
-                    payloadJson = JsonSerializer.Serialize(payloadString);
-                }
-
-                var statusUpdate = new RoombaStatusUpdate(topic, payloadJson, timestamp);
 
                 if (ShadowUpdateTopicRegex().IsMatch(topic))
                 {
-                    var mergedPayload = DeepMergeJson(_lastStatusUpdate.PayloadJson, payloadJson);
-                    _lastStatusUpdate = new RoombaStatusUpdate(topic, mergedPayload, timestamp);
+                    var payload = Encoding.UTF8.GetString(messageEvent.ApplicationMessage.Payload);
+                    var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+                    var mergedPayload = DeepMergeJson(_lastStatusUpdate.Payload, payload);
+
+                    _logger.LogDebug("Received message on topic {Payload}", mergedPayload);
+
+                    _lastStatusUpdate.Payload = mergedPayload;
+                    _lastStatusUpdate.Timestamp = timestamp;
                 }
 
-                _statusChannel.Writer.TryWrite(statusUpdate);
+                _statusChannel.Writer.TryWrite(_lastStatusUpdate);
 
                 _logger.LogDebug("Received status update on topic '{Topic}'", topic);
             }, stoppingToken);
