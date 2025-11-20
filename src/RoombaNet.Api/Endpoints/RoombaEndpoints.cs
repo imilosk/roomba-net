@@ -267,12 +267,17 @@ public static class RoombaEndpoints
                 CancellationToken cancellationToken
             ) =>
             {
-
                 context.Response.Headers.Append("Content-Type", "text/event-stream");
                 context.Response.Headers.Append("Cache-Control", "no-cache");
                 context.Response.Headers.Append("Connection", "keep-alive");
 
                 await context.Response.Body.FlushAsync(cancellationToken);
+
+                // Combine the request cancellation token with the application stopping token
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken,
+                    lifetime.ApplicationStopping
+                );
 
                 try
                 {
@@ -282,27 +287,26 @@ public static class RoombaEndpoints
                     var message = $"event: status\ndata: {json}\n\n";
                     var bytes = System.Text.Encoding.UTF8.GetBytes(message);
 
-                    await context.Response.Body.WriteAsync(bytes, cancellationToken);
-                    await context.Response.Body.FlushAsync(cancellationToken);
+                    await context.Response.Body.WriteAsync(bytes, cts.Token);
+                    await context.Response.Body.FlushAsync(cts.Token);
 
                     logger.LogDebug("Sent last known status to new client");
 
-                    await foreach (var update in statusService.StatusUpdates.ReadAllAsync(cancellationToken))
+                    await foreach (var update in statusService.StatusUpdates.ReadAllAsync(cts.Token))
                     {
                         json = update.Payload;
                         message = $"event: status\ndata: {json}\n\n";
                         bytes = System.Text.Encoding.UTF8.GetBytes(message);
 
-                        await context.Response.Body.WriteAsync(bytes, cancellationToken);
-                        await context.Response.Body.FlushAsync(cancellationToken);
+                        await context.Response.Body.WriteAsync(bytes, cts.Token);
+                        await context.Response.Body.FlushAsync(cts.Token);
 
                         logger.LogDebug("Sent status update to client");
                     }
                 }
                 catch (OperationCanceledException)
                 {
-                    // Client disconnected or application stopping, this is normal
-                    logger.LogInformation("Status stream ended (client disconnected or application stopping)");
+                    // Client disconnected or application stopping, this is expected
                 }
             })
             .WithName("StreamRoombaStatus")
