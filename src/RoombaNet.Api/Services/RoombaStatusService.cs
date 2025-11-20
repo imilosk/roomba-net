@@ -14,7 +14,7 @@ public partial class RoombaStatusService : BackgroundService
     private readonly ILogger<RoombaStatusService> _logger;
     private readonly TimeProvider _timeProvider;
     private readonly Channel<RoombaStatusUpdate> _statusChannel;
-    private RoombaStatusUpdate _lastStatusUpdate = new(string.Empty, default, DateTime.MinValue);
+    private RoombaStatusUpdate _lastStatusUpdate = new(string.Empty, "{}", DateTime.MinValue);
 
     [GeneratedRegex(@"^\$aws/things/.+/shadow/update$")]
     private static partial Regex ShadowUpdateTopicRegex();
@@ -44,16 +44,22 @@ public partial class RoombaStatusService : BackgroundService
         return _lastStatusUpdate;
     }
 
-    private static JsonElement DeepMergeJson(JsonElement target, JsonElement source)
+    private static string DeepMergeJson(string targetJson, string sourceJson)
     {
-        if (target.ValueKind == JsonValueKind.Undefined || target.ValueKind == JsonValueKind.Null)
+        if (string.IsNullOrWhiteSpace(targetJson) || targetJson == "{}")
         {
-            return source.Clone();
+            return sourceJson;
         }
+
+        using var targetDoc = JsonDocument.Parse(targetJson);
+        using var sourceDoc = JsonDocument.Parse(sourceJson);
+
+        var target = targetDoc.RootElement;
+        var source = sourceDoc.RootElement;
 
         if (source.ValueKind != JsonValueKind.Object || target.ValueKind != JsonValueKind.Object)
         {
-            return source.Clone();
+            return sourceJson;
         }
 
         var merged = new Dictionary<string, JsonElement>();
@@ -67,10 +73,15 @@ public partial class RoombaStatusService : BackgroundService
         // Merge or override with properties from source
         foreach (var property in source.EnumerateObject())
         {
-            if (merged.TryGetValue(property.Name, out var existingValue))
+            if (merged.TryGetValue(property.Name, out var existingValue) &&
+                property.Value.ValueKind == JsonValueKind.Object &&
+                existingValue.ValueKind == JsonValueKind.Object)
             {
                 // Recursively merge if both are objects
-                merged[property.Name] = DeepMergeJson(existingValue, property.Value);
+                var existingJson = JsonSerializer.Serialize(existingValue);
+                var newJson = JsonSerializer.Serialize(property.Value);
+                var mergedJson = DeepMergeJson(existingJson, newJson);
+                merged[property.Name] = JsonDocument.Parse(mergedJson).RootElement.Clone();
             }
             else
             {
@@ -78,9 +89,7 @@ public partial class RoombaStatusService : BackgroundService
             }
         }
 
-        // Convert dictionary back to JsonElement
-        var jsonString = JsonSerializer.Serialize(merged);
-        return JsonDocument.Parse(jsonString).RootElement.Clone();
+        return JsonSerializer.Serialize(merged);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -95,22 +104,24 @@ public partial class RoombaStatusService : BackgroundService
                 var payloadString = Encoding.UTF8.GetString(messageEvent.ApplicationMessage.Payload);
                 var timestamp = _timeProvider.GetUtcNow().DateTime;
 
-                JsonElement payloadJson;
+                string payloadJson;
                 try
                 {
-                    payloadJson = JsonDocument.Parse(payloadString).RootElement.Clone();
+                    // Validate it's valid JSON
+                    using var testDoc = JsonDocument.Parse(payloadString);
+                    payloadJson = payloadString;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to parse payload as JSON. Storing as raw string.");
-                    payloadJson = JsonDocument.Parse($"\"{payloadString.Replace("\"", "\\\"")}\"").RootElement.Clone();
+                    _logger.LogWarning(ex, "Failed to parse payload as JSON. Storing as escaped string.");
+                    payloadJson = JsonSerializer.Serialize(payloadString);
                 }
 
                 var statusUpdate = new RoombaStatusUpdate(topic, payloadJson, timestamp);
 
                 if (ShadowUpdateTopicRegex().IsMatch(topic))
                 {
-                    var mergedPayload = DeepMergeJson(_lastStatusUpdate.Payload, payloadJson);
+                    var mergedPayload = DeepMergeJson(_lastStatusUpdate.PayloadJson, payloadJson);
                     _lastStatusUpdate = new RoombaStatusUpdate(topic, mergedPayload, timestamp);
                 }
 

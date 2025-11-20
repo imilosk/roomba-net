@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using RoombaNet.Api.Models;
 using RoombaNet.Api.Services;
@@ -273,36 +272,35 @@ public static class RoombaEndpoints
 
                 await context.Response.Body.FlushAsync(cancellationToken);
 
-                // Combine the request cancellation token with the application stopping token
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(
                     cancellationToken,
                     lifetime.ApplicationStopping);
 
                 try
                 {
-                    // Send the last known status immediately when client connects
                     var lastStatus = statusService.GetLastStatus();
 
-                    var json = JsonSerializer.Serialize(lastStatus);
+                    var json =
+                        $"{{\"topic\":\"{lastStatus.Topic}\",\"payload\":{lastStatus.PayloadJson},\"timestamp\":\"{lastStatus.Timestamp:O}\"}}";
                     var message = $"event: status\ndata: {json}\n\n";
                     var bytes = System.Text.Encoding.UTF8.GetBytes(message);
 
                     await context.Response.Body.WriteAsync(bytes, cts.Token);
                     await context.Response.Body.FlushAsync(cts.Token);
 
-                    logger.LogDebug("Sent last known status to new client {Message}", message);
+                    logger.LogDebug("Sent last known status to new client");
 
-                    // Then stream new updates as they arrive
                     await foreach (var update in statusService.StatusUpdates.ReadAllAsync(cts.Token))
                     {
-                        json = JsonSerializer.Serialize(update);
+                        json =
+                            $"{{\"topic\":\"{update.Topic}\",\"payload\":{update.PayloadJson},\"timestamp\":\"{update.Timestamp:O}\"}}";
                         message = $"event: status\ndata: {json}\n\n";
                         bytes = System.Text.Encoding.UTF8.GetBytes(message);
 
                         await context.Response.Body.WriteAsync(bytes, cts.Token);
                         await context.Response.Body.FlushAsync(cts.Token);
 
-                        logger.LogDebug("Sent last known status to new client {Message}", message);
+                        logger.LogDebug("Sent status update on topic '{Topic}'", update.Topic);
                     }
                 }
                 catch (OperationCanceledException ex)
