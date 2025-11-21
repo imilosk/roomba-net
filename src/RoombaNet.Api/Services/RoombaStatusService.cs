@@ -1,6 +1,5 @@
 
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Text.Json;
 using System.Threading.Channels;
 using RoombaNet.Api.Models;
@@ -8,16 +7,13 @@ using RoombaNet.Core;
 
 namespace RoombaNet.Api.Services;
 
-public partial class RoombaStatusService : BackgroundService
+public class RoombaStatusService : BackgroundService
 {
     private readonly IRoombaSubscriber _subscriber;
     private readonly ILogger<RoombaStatusService> _logger;
     private readonly TimeProvider _timeProvider;
     private readonly Channel<RoombaStatusUpdate> _statusChannel;
     private readonly RoombaStatusUpdate _lastStatusUpdate = new("{}", DateTime.MinValue);
-
-    [GeneratedRegex(@"^\$aws/things/.+/shadow/update$")]
-    private static partial Regex ShadowUpdateTopicRegex();
 
     public RoombaStatusService(
         IRoombaSubscriber subscriber,
@@ -28,7 +24,6 @@ public partial class RoombaStatusService : BackgroundService
         _logger = logger;
         _timeProvider = timeProvider;
 
-        // Unbounded channel to handle bursts of status updates
         _statusChannel = Channel.CreateUnbounded<RoombaStatusUpdate>(
             new UnboundedChannelOptions
             {
@@ -64,7 +59,6 @@ public partial class RoombaStatusService : BackgroundService
 
         var merged = new Dictionary<string, JsonElement>();
 
-        // Copy all properties from target
         foreach (var property in target.EnumerateObject())
         {
             merged[property.Name] = property.Value.Clone();
@@ -100,18 +94,15 @@ public partial class RoombaStatusService : BackgroundService
             {
                 var topic = messageEvent.ApplicationMessage.Topic;
 
-                if (ShadowUpdateTopicRegex().IsMatch(topic))
-                {
-                    var payload = Encoding.UTF8.GetString(messageEvent.ApplicationMessage.Payload);
-                    var timestamp = _timeProvider.GetUtcNow().DateTime;
+                var payload = Encoding.UTF8.GetString(messageEvent.ApplicationMessage.Payload);
+                var timestamp = _timeProvider.GetUtcNow().DateTime;
 
-                    var mergedPayload = DeepMergeJson(_lastStatusUpdate.Payload, payload);
+                var mergedPayload = DeepMergeJson(_lastStatusUpdate.Payload, payload);
 
-                    _logger.LogDebug("Received message on topic {Payload}", mergedPayload);
+                _logger.LogDebug("Received message on topic {Payload}", mergedPayload);
 
-                    _lastStatusUpdate.Payload = mergedPayload;
-                    _lastStatusUpdate.Timestamp = timestamp;
-                }
+                _lastStatusUpdate.Payload = mergedPayload;
+                _lastStatusUpdate.Timestamp = timestamp;
 
                 _statusChannel.Writer.TryWrite(_lastStatusUpdate);
 

@@ -24,7 +24,6 @@ public static class RoombaEndpoints
 
     private static void MapCommandEndpoints(RouteGroupBuilder group)
     {
-        // Execute individual command
         group.MapPost("/commands/{command}", async (
                 string command,
                 RoombaApiService roombaService,
@@ -44,7 +43,6 @@ public static class RoombaEndpoints
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest)
             .Produces<CommandResponse>(StatusCodes.Status500InternalServerError);
 
-        // Execute batch commands
         group.MapPost("/commands/batch", async (
                 [FromBody] BatchCommandRequest request,
                 RoombaApiService roombaService,
@@ -63,7 +61,6 @@ public static class RoombaEndpoints
             .Produces<BatchCommandResponse>(StatusCodes.Status400BadRequest)
             .Produces<BatchCommandResponse>(StatusCodes.Status500InternalServerError);
 
-        // Get available commands
         group.MapGet("/commands", async (RoombaApiService roombaService) =>
             {
                 var result = await roombaService.GetAvailableCommandsAsync();
@@ -74,7 +71,6 @@ public static class RoombaEndpoints
             .WithDescription("Returns a list of all available commands that can be executed")
             .Produces<AvailableCommandsResponse>();
 
-        // Health check
         group.MapGet("/health", async (
                 RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
@@ -93,7 +89,6 @@ public static class RoombaEndpoints
             .Produces<HealthCheckResponse>()
             .Produces(StatusCodes.Status503ServiceUnavailable);
 
-        // Dedicated command endpoints
         group.MapPost("/start", async (
                 RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
