@@ -13,51 +13,66 @@ public class RoombaState
     [JsonPropertyName("batInfo")]
     public BatteryInfo? BatInfo { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("batAuthEnable")]
     public bool? BatAuthEnable { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("bbchg")]
     public BatteryCharge? Bbchg { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("bbchg3")]
     public BatteryCharge3? Bbchg3 { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("bbmssn")]
     public MissionStats? Bbmssn { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("bbnav")]
     public NavigationStats? Bbnav { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("bbpause")]
     public PauseStats? Bbpause { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("bbrstinfo")]
     public ResetInfo? Bbrstinfo { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("bbrun")]
     public RunStats? Bbrun { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("bbswitch")]
     public SwitchStats? Bbswitch { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("bbsys")]
     public SystemStats? Bbsys { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("behaviorFwk")]
     public bool? BehaviorFwk { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("bin")]
     public BinInfo? Bin { get; set; }
 
     [JsonPropertyName("binPause")]
     public bool? BinPause { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("binTypeDetect")]
     public int? BinTypeDetect { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("cap")]
     public Capabilities? Cap { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("carpetBoost")]
     public bool? CarpetBoost { get; set; }
 
@@ -67,9 +82,11 @@ public class RoombaState
     [JsonPropertyName("cleanMissionStatus")]
     public CleanMissionStatus? CleanMissionStatus { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("cleanSchedule2")]
     public List<object>? CleanSchedule2 { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("cloudEnv")]
     public string? CloudEnv { get; set; }
 
@@ -79,6 +96,7 @@ public class RoombaState
     [JsonPropertyName("country")]
     public string? Country { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("deploymentState")]
     public int? DeploymentState { get; set; }
 
@@ -88,33 +106,42 @@ public class RoombaState
     [JsonPropertyName("evacAllowed")]
     public bool? EvacAllowed { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("ecoCharge")]
     public bool? EcoCharge { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("featureFlags")]
     public FeatureFlags? FeatureFlags { get; set; }
 
     [JsonPropertyName("hwPartsRev")]
     public HardwarePartsRevision? HwPartsRev { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("hwDbgr")]
     public object? HwDbgr { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("langs2")]
     public LanguageInfo? Langs2 { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("lastCommand")]
     public LastCommand? LastCommand { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("lastDisconnect")]
     public int? LastDisconnect { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("mapUploadAllowed")]
     public bool? MapUploadAllowed { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("missionTelemetry")]
     public MissionTelemetry? MissionTelemetry { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("mssnNavStats")]
     public MissionNavigationStats? MssnNavStats { get; set; }
 
@@ -124,33 +151,43 @@ public class RoombaState
     [JsonPropertyName("noAutoPasses")]
     public bool? NoAutoPasses { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("noPP")]
     public bool? NoPP { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("openOnly")]
     public bool? OpenOnly { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("pmapLearningAllowed")]
     public bool? PmapLearningAllowed { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("pmaps")]
     public List<Dictionary<string, string>>? Pmaps { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("pmapShare")]
     public PmapShare? PmapShare { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("rankOverlap")]
     public int? RankOverlap { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("reflexSettings")]
     public ReflexSettings? ReflexSettings { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("sceneRecog")]
     public int? SceneRecog { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("schedHold")]
     public bool? SchedHold { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("secureBoot")]
     public SecureBoot? SecureBoot { get; set; }
 
@@ -163,21 +200,25 @@ public class RoombaState
     [JsonPropertyName("subModSwVer")]
     public SubModuleVersions? SubModSwVer { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("svcEndpoints")]
     public ServiceEndpoints? SvcEndpoints { get; set; }
 
     [JsonPropertyName("timezone")]
     public string? Timezone { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("tls")]
     public TlsInfo? Tls { get; set; }
 
     [JsonPropertyName("twoPass")]
     public bool? TwoPass { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("tz")]
     public TimezoneInfo? Tz { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("vacHigh")]
     public bool? VacHigh { get; set; }
 
@@ -202,18 +243,23 @@ public class BatteryInfo
     [JsonPropertyName("mName")]
     public string? MName { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("mDaySerial")]
     public int? MDaySerial { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("mData")]
     public string? MData { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("mLife")]
     public string? MLife { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("cCount")]
     public int? CCount { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("afCount")]
     public int? AfCount { get; set; }
 }
@@ -487,48 +533,62 @@ public class CleanMissionStatus
     [JsonPropertyName("phase")]
     public string? Phase { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("expireM")]
     public int? ExpireM { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("rechrgM")]
     public int? RechrgM { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("error")]
     public int? Error { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("notReady")]
     public int? NotReady { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("condNotReady")]
     public List<object>? CondNotReady { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("mssnM")]
     public int? MssnM { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("expireTm")]
     public int? ExpireTm { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("rechrgTm")]
     public int? RechrgTm { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("mssnStrtTm")]
     public long? MssnStrtTm { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("operatingMode")]
     public int? OperatingMode { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("initiator")]
     public string? Initiator { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("nMssn")]
     public int? NMssn { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("missionId")]
     public string? MissionId { get; set; }
 }
 
 public class DockInfo
 {
+    [JsonIgnore]
     [JsonPropertyName("known")]
     public bool? Known { get; set; }
 
@@ -544,9 +604,11 @@ public class DockInfo
     [JsonPropertyName("fwVer")]
     public string? FwVer { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("hwRev")]
     public int? HwRev { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("varID")]
     public int? VarID { get; set; }
 }
@@ -577,24 +639,29 @@ public class FeatureFlags
 
 public class HardwarePartsRevision
 {
+    [JsonIgnore]
     [JsonPropertyName("csscID")]
     public int? CsscID { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("mobBrd")]
     public int? MobBrd { get; set; }
 
     [JsonPropertyName("mobBlid")]
     public string? MobBlid { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("imuPartNo")]
     public string? ImuPartNo { get; set; }
 
     [JsonPropertyName("navSerialNo")]
     public string? NavSerialNo { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("wlan0HwAddr")]
     public string? Wlan0HwAddr { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("NavBrd")]
     public int? NavBrd { get; set; }
 }
@@ -802,15 +869,19 @@ public class SubModuleVersions
     [JsonPropertyName("pwr")]
     public string? Pwr { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("sft")]
     public string? Sft { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("mobBtl")]
     public string? MobBtl { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("linux")]
     public string? Linux { get; set; }
 
+    [JsonIgnore]
     [JsonPropertyName("con")]
     public string? Con { get; set; }
 }
