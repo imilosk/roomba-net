@@ -278,7 +278,7 @@ public static class RoombaEndpoints
                 {
                     var lastStatus = statusService.GetLastStatus();
 
-                    var json = lastStatus.Payload;
+                    var json = System.Text.Json.JsonSerializer.Serialize(lastStatus.State);
                     var message = $"event: status\ndata: {json}\n\n";
                     var bytes = System.Text.Encoding.UTF8.GetBytes(message);
 
@@ -289,7 +289,7 @@ public static class RoombaEndpoints
 
                     await foreach (var update in statusService.StatusUpdates.ReadAllAsync(cts.Token))
                     {
-                        json = update.Payload;
+                        json = System.Text.Json.JsonSerializer.Serialize(update.State);
                         message = $"event: status\ndata: {json}\n\n";
                         bytes = System.Text.Encoding.UTF8.GetBytes(message);
 

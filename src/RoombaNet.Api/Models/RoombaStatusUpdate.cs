@@ -2,12 +2,12 @@ namespace RoombaNet.Api.Models;
 
 public class RoombaStatusUpdate
 {
-    public RoombaStatusUpdate(string payload, DateTime timestamp)
+    public RoombaStatusUpdate(RoombaState state, DateTime timestamp)
     {
-        Payload = payload;
+        State = state;
         Timestamp = timestamp;
     }
 
-    public string Payload { get; set; }
+    public RoombaState State { get; set; }
     public DateTime Timestamp { get; set; }
 }
