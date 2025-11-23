@@ -135,33 +135,55 @@ Example output when using the `subscribe` command:
 
 ### API Usage
 
-Start the API server:
+#### Option 1: Run with .NET
 ```bash
 dotnet run --project src/RoombaNet.Api
+```
+
+#### Option 2: Run with Docker
+```bash
+# Build the image
+docker build -t roombanet-api .
+
+# Run the container
+docker run -d \
+  --name roombanet \
+  -p 8080:8080 \
+  -e RoombaSettings__Ip=192.168.1.100 \
+  -e RoombaSettings__Port=8883 \
+  -e RoombaSettings__Blid=your_roomba_blid \
+  -e RoombaSettings__Password=your_roomba_password \
+  roombanet-api
+
+# View logs
+docker logs -f roombanet
+
+# Stop the container
+docker stop roombanet
 ```
 
 #### Single Commands
 ```bash
 # Start cleaning
-curl -X POST http://localhost:5000/api/roomba/commands/start
+curl -X POST http://localhost:8080/api/roomba/commands/start
 
 # Find Roomba (make it beep)
-curl -X POST http://localhost:5000/api/roomba/commands/find
+curl -X POST http://localhost:8080/api/roomba/commands/find
 
 # Return to dock
-curl -X POST http://localhost:5000/api/roomba/commands/dock
+curl -X POST http://localhost:8080/api/roomba/commands/dock
 
 # Evacuate bin (Clean Base models only)
-curl -X POST http://localhost:5000/api/roomba/evac
+curl -X POST http://localhost:8080/api/roomba/evac
 
 # Get available commands
-curl http://localhost:5000/api/roomba/commands
+curl http://localhost:8080/api/roomba/commands
 ```
 
 #### Batch Commands
 ```bash
 # Execute multiple commands sequentially
-curl -X POST http://localhost:5000/api/roomba/commands/batch \
+curl -X POST http://localhost:8080/api/roomba/commands/batch \
   -H "Content-Type: application/json" \
   -d '{
     "commands": ["start", "pause", "resume"],
@@ -169,7 +191,7 @@ curl -X POST http://localhost:5000/api/roomba/commands/batch \
   }'
 
 # Execute commands in parallel
-curl -X POST http://localhost:5000/api/roomba/commands/batch \
+curl -X POST http://localhost:8080/api/roomba/commands/batch \
   -H "Content-Type: application/json" \
   -d '{
     "commands": ["find", "start"],
@@ -180,10 +202,10 @@ curl -X POST http://localhost:5000/api/roomba/commands/batch \
 #### Settings Management
 ```bash
 # Get current settings
-curl http://localhost:5000/api/roomba/settings
+curl http://localhost:8080/api/roomba/settings
 
 # Update settings
-curl -X PUT http://localhost:5000/api/roomba/settings \
+curl -X PUT http://localhost:8080/api/roomba/settings \
   -H "Content-Type: application/json" \
   -d '{
     "twoPass": true,
@@ -197,10 +219,10 @@ curl -X PUT http://localhost:5000/api/roomba/settings \
 #### Real-time Status Streaming
 ```bash
 # Stream live status updates (Server-Sent Events)
-curl http://localhost:5000/api/roomba/status/stream
+curl http://localhost:8080/api/roomba/status/stream
 
 # Get health check
-curl http://localhost:5000/api/roomba/health
+curl http://localhost:8080/api/roomba/health
 ```
 
 ## 📋 Roadmap
@@ -213,6 +235,7 @@ curl http://localhost:5000/api/roomba/health
 - [x] Real-time status streaming (SSE)
 - [x] Batch command execution
 - [x] Settings management
+- [x] Docker container support
 
 ### In Progress 🚧
 - [ ] Web UI for browser-based control (https://github.com/imilosk/roomba-net-ui)
@@ -220,7 +243,6 @@ curl http://localhost:5000/api/roomba/health
 - [ ] Unit and integration tests
 
 ### Planned 📝
-- [ ] Docker container support
 - [ ] Room-specific cleaning
 - [ ] Zone cleaning support
 - [ ] Keep-out zone management

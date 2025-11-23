@@ -1,0 +1,14 @@
+**/.dockerignore
+**/.git
+**/.gitignore
+**/.vscode
+**/.editorconfig
+**/bin
+**/obj
+**/out
+**/.DS_Store
+**/node_modules
+README.md
+LICENSE
+**/secrets.*.json
+**/*.md
