@@ -18,6 +18,7 @@ public static class Bootstrapper
         );
 
         services.TryAddSingleton<IRoombaPasswordClient, RoombaPasswordClient>();
+        services.TryAddSingleton<IRoombaDiscoveryClient, RoombaDiscoveryClient>();
 
         return services;
     }

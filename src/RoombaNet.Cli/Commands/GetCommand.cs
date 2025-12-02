@@ -17,8 +17,6 @@ public class GetCommand : Command
         _cancellationToken = cancellationToken;
 
         AddSubcommand("password", "Get Roomba password", GetPassword, "pwd", "pass");
-        AddSubcommand("ip", "Get Roomba IP address", GetIpAddress);
-        AddSubcommand("blid", "Get Roomba BLID", GetBlid);
     }
 
     private void AddSubcommand(string commandName, string description, Func<Task> handler, params string[] aliases)
@@ -35,26 +33,15 @@ public class GetCommand : Command
         Subcommands.Add(command);
     }
 
-    private async Task GetPassword() {
+    private async Task GetPassword()
+    {
         var password = await _roombaSettingsClient.GetPassword(_cancellationToken);
         if (string.IsNullOrEmpty(password))
         {
             Console.WriteLine("No password found or unable to retrieve it.");
             return;
         }
-        
+
         Console.WriteLine($"Password=> {password} <= Yes, all this string.");
-    }
-
-    private async Task GetIpAddress()
-    {
-        var ipAddress = await _roombaSettingsClient.GetIpAddress(_cancellationToken);
-        Console.WriteLine($"Roomba IP address: {ipAddress}");
-    }
-
-    private async Task GetBlid()
-    {
-        var blid = await _roombaSettingsClient.GetBlid(_cancellationToken);
-        Console.WriteLine($"Roomba BLID: {blid}");
     }
 }

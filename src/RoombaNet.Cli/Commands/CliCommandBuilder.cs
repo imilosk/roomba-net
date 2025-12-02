@@ -28,7 +28,8 @@ public class CliCommandBuilder
             new SubscribeCommand(_roombaSubscriber, cancellationToken),
             new ExecuteCommand(_roombaCommandClient, cancellationToken),
             new SettingCommand(_roombaSettingsClient, cancellationToken),
-            new GetCommand(_roombaSettingsClient, cancellationToken)
+            new GetCommand(_roombaSettingsClient, cancellationToken),
+            new DiscoverCommand(_roombaSettingsClient, cancellationToken)
         ];
     }
 }

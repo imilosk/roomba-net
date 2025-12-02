@@ -15,17 +15,20 @@ public class RoombaSettingsClient : IRoombaSettingsClient
     private readonly ILogger<RoombaSettingsClient> _logger;
     private readonly IRoombaConnectionManager _connectionManager;
     private readonly IRoombaPasswordClient _roombaPasswordClient;
+    private readonly IRoombaDiscoveryClient _roombaDiscoveryClient;
     private static readonly MqttApplicationMessageBuilder MessageBuilder = new();
 
     public RoombaSettingsClient(
         ILogger<RoombaSettingsClient> logger,
         IRoombaConnectionManager connectionManager,
-        IRoombaPasswordClient roombaPasswordClient
+        IRoombaPasswordClient roombaPasswordClient,
+        IRoombaDiscoveryClient roombaDiscoveryClient
     )
     {
         _logger = logger;
         _connectionManager = connectionManager;
         _roombaPasswordClient = roombaPasswordClient;
+        _roombaDiscoveryClient = roombaDiscoveryClient;
     }
 
     public async Task SetChildLock(bool enable, CancellationToken cancellationToken = default)
@@ -43,16 +46,9 @@ public class RoombaSettingsClient : IRoombaSettingsClient
         return await _roombaPasswordClient.GetPassword(cancellationToken);
     }
 
-    public async Task<string> GetIpAddress(CancellationToken cancellationToken = default)
+    public async Task<List<RoombaInfo>> GetRoombas(CancellationToken cancellationToken = default)
     {
-        await Task.CompletedTask;
-        throw new NotImplementedException("GetIpAddress method is not implemented yet.");
-    }
-
-    public async Task<string> GetBlid(CancellationToken cancellationToken = default)
-    {
-        await Task.CompletedTask;
-        throw new NotImplementedException("GetBlid method is not implemented yet.");
+        return await _roombaDiscoveryClient.DiscoverRoombasAsync(cancellationToken: cancellationToken);
     }
 
     public async Task CleaningPasses(RoombaCleaningPasses passes, CancellationToken cancellationToken = default)
