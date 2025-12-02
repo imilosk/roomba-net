@@ -99,8 +99,10 @@ SKU/Model:     i355020
 To retrieve the password, you need to hold down the HOME button on your Roomba for about 2 seconds until it plays a series of tones (about 6 beeps). Then run:
 
 ```bash
-dotnet run --project src/RoombaNet.Cli get password
+dotnet run --project src/RoombaNet.Cli get password --ip 192.168.1.100
 ```
+
+Replace `192.168.1.100` with your Roomba's IP address from step 1.
 
 **Important**: The Roomba must be on the dock and awake for this to work. If it doesn't respond, try pressing the HOME button again.
 

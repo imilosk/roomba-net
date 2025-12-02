@@ -3,28 +3,25 @@ using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Microsoft.Extensions.Logging;
-using RoombaNet.Settings.Settings;
 
 namespace RoombaNet.Transport.Tls;
 
 public class RoombaPasswordClient : IRoombaPasswordClient
 {
     private readonly ILogger<RoombaPasswordClient> _logger;
-    private readonly RoombaSettings _roombaSettings;
     private const int SliceFrom = 9;
 
     public RoombaPasswordClient(
-        ILogger<RoombaPasswordClient> logger,
-        RoombaSettings roombaSettings
+        ILogger<RoombaPasswordClient> logger
     )
     {
         _logger = logger;
-        _roombaSettings = roombaSettings;
     }
 
-    public async Task<string> GetPassword(CancellationToken cancellationToken = default)
+    public async Task<string> GetPassword(string ipAddress, int port = 8883,
+        CancellationToken cancellationToken = default)
     {
-        var (sslStream, tcpClient) = await ConnectAsync(cancellationToken);
+        var (sslStream, tcpClient) = await ConnectAsync(ipAddress, port, cancellationToken);
         await SendDiscoveryPacketAsync(sslStream, cancellationToken);
         var password = await ListenForPasswordAsync(sslStream, cancellationToken);
 
@@ -34,12 +31,13 @@ public class RoombaPasswordClient : IRoombaPasswordClient
         return password;
     }
 
-    private async Task<(SslStream sslStream, TcpClient tcpClient)> ConnectAsync(CancellationToken cancellationToken)
+    private async Task<(SslStream sslStream, TcpClient tcpClient)> ConnectAsync(string ip, int port,
+        CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Connecting to Roomba at {Ip}:{Port}...", _roombaSettings.Ip, _roombaSettings.Port);
+        _logger.LogInformation("Connecting to Roomba at {Ip}:{Port}...", ip, port);
 
         var tcpClient = new TcpClient();
-        await tcpClient.ConnectAsync(_roombaSettings.Ip, _roombaSettings.Port, cancellationToken);
+        await tcpClient.ConnectAsync(ip, port, cancellationToken);
 
         var sslStream = new SslStream(
             tcpClient.GetStream(),
@@ -48,7 +46,7 @@ public class RoombaPasswordClient : IRoombaPasswordClient
 
         var sslOptions = new SslClientAuthenticationOptions
         {
-            TargetHost = _roombaSettings.Ip,
+            TargetHost = ip,
             EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12,
             RemoteCertificateValidationCallback = ValidateServerCertificate,
         };

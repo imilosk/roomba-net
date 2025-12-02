@@ -16,26 +16,42 @@ public class GetCommand : Command
         _roombaSettingsClient = roombaSettingsClient;
         _cancellationToken = cancellationToken;
 
-        AddSubcommand("password", "Get Roomba password", GetPassword, "pwd", "pass");
-    }
+        var passwordCommand = new Command("password", "Get Roomba password (hold HOME button for 2 seconds first)");
+        passwordCommand.Aliases.Add("pwd");
+        passwordCommand.Aliases.Add("pass");
 
-    private void AddSubcommand(string commandName, string description, Func<Task> handler, params string[] aliases)
-    {
-        var command = new Command(commandName, description);
-
-        foreach (var alias in aliases)
+        var ipOption = new Option<string>("--ip")
         {
-            command.Aliases.Add(alias);
-        }
+            Description = "Roomba IP address",
+        };
+        var portOption = new Option<int>("--port")
+        {
+            Description = "Roomba port",
+            DefaultValueFactory = _ => 8883,
+        };
 
-        command.SetAction(async _ => await handler());
+        passwordCommand.Add(ipOption);
+        passwordCommand.Add(portOption);
 
-        Subcommands.Add(command);
+        passwordCommand.SetAction(async parseResult =>
+        {
+            var ip = parseResult.GetValue(ipOption);
+            if (string.IsNullOrEmpty(ip))
+            {
+                Console.WriteLine("Error: --ip parameter is required");
+                return;
+            }
+
+            var port = parseResult.GetValue(portOption);
+            await GetPassword(ip, port);
+        });
+
+        Subcommands.Add(passwordCommand);
     }
 
-    private async Task GetPassword()
+    private async Task GetPassword(string ipAddress, int port)
     {
-        var password = await _roombaSettingsClient.GetPassword(_cancellationToken);
+        var password = await _roombaSettingsClient.GetPassword(ipAddress, port, _cancellationToken);
         if (string.IsNullOrEmpty(password))
         {
             Console.WriteLine("No password found or unable to retrieve it.");
