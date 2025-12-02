@@ -41,6 +41,23 @@ public class DiscoverCommand : Command
             Console.WriteLine($"Hostname:      {roomba.Hostname}");
             Console.WriteLine($"MAC Address:   {roomba.Mac}");
             Console.WriteLine($"SKU/Model:     {roomba.Sku}");
+            Console.WriteLine($"Software:      {roomba.SoftwareVersion}");
+            Console.WriteLine($"Protocol:      {roomba.Protocol}");
+
+            // if (roomba.Nc.HasValue)
+            // {
+            //     Console.WriteLine($"NC:            {roomba.Nc}");
+            // }
+
+            // if (roomba.Capabilities is not null && roomba.Capabilities.Count > 0)
+            // {
+            //     Console.WriteLine("Capabilities:");
+            //     foreach (var cap in roomba.Capabilities)
+            //     {
+            //         Console.WriteLine($"  {cap.Key}: {cap.Value}");
+            //     }
+            // }
+
             Console.WriteLine();
         }
     }

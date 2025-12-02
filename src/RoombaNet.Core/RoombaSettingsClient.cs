@@ -41,7 +41,11 @@ public class RoombaSettingsClient : IRoombaSettingsClient
         await SetSetting(RoombaSetting.BinPause, enable, cancellationToken);
     }
 
-    public async Task<string> GetPassword(string ipAddress, int port = 8883, CancellationToken cancellationToken = default)
+    public async Task<string> GetPassword(
+        string ipAddress,
+        int port = 8883,
+        CancellationToken cancellationToken = default
+    )
     {
         return await _roombaPasswordClient.GetPassword(ipAddress, port, cancellationToken);
     }

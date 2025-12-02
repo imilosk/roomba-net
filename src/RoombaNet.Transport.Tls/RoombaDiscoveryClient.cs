@@ -55,18 +55,18 @@ public class RoombaDiscoveryClient : IRoombaDiscoveryClient
                 try
                 {
                     var roombaInfo = JsonSerializer.Deserialize(response, RoombaInfoJsonContext.Default.RoombaInfo);
-                    if (roombaInfo != null && !string.IsNullOrEmpty(roombaInfo.Ip))
+                    if (roombaInfo is not null
+                        && !string.IsNullOrEmpty(roombaInfo.Ip)
+                        && discoveredRoombas.TryAdd(roombaInfo.Ip, roombaInfo)
+                       )
                     {
-                        if (discoveredRoombas.TryAdd(roombaInfo.Ip, roombaInfo))
-                        {
-                            _logger.LogInformation(
-                                "Discovered Roomba: {Name} ({Hostname}) at {Ip}, SKU: {Sku}",
-                                roombaInfo.RobotName,
-                                roombaInfo.Hostname,
-                                roombaInfo.Ip,
-                                roombaInfo.Sku
-                            );
-                        }
+                        _logger.LogInformation(
+                            "Discovered Roomba: {Name} ({Hostname}) at {Ip}, SKU: {Sku}",
+                            roombaInfo.RobotName,
+                            roombaInfo.Hostname,
+                            roombaInfo.Ip,
+                            roombaInfo.Sku
+                        );
                     }
                 }
                 catch (JsonException ex)

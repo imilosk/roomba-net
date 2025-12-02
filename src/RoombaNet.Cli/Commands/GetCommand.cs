@@ -51,13 +51,20 @@ public class GetCommand : Command
 
     private async Task GetPassword(string ipAddress, int port)
     {
-        var password = await _roombaSettingsClient.GetPassword(ipAddress, port, _cancellationToken);
-        if (string.IsNullOrEmpty(password))
+        try
         {
-            Console.WriteLine("No password found or unable to retrieve it.");
-            return;
-        }
+            var password = await _roombaSettingsClient.GetPassword(ipAddress, port, _cancellationToken);
+            if (string.IsNullOrEmpty(password))
+            {
+                Console.WriteLine("Failed to retrieve password. See README for instructions.");
+                return;
+            }
 
-        Console.WriteLine($"Password=> {password} <= Yes, all this string.");
+            Console.WriteLine($"Password=> {password} <= Yes, all this string.");
+        }
+        catch (Exception)
+        {
+            Console.WriteLine("Failed to retrieve password. See README for instructions.");
+        }
     }
 }

@@ -96,15 +96,32 @@ SKU/Model:     i355020
 
 #### Step 2: Get Your Roomba Password
 
-To retrieve the password, you need to hold down the HOME button on your Roomba for about 2 seconds until it plays a series of tones (about 6 beeps). Then run:
+The process varies by model:
 
-```bash
-dotnet run --project src/RoombaNet.Cli get password --ip 192.168.1.100
-```
+**For i3, i3+, and similar models:**
+1. Press and hold both the **HOME** and **SPOT CLEAN** buttons for about 2 seconds until you hear a sound and the CLEAN button turns blue
+2. The Roomba will create its own Wi-Fi network (e.g., "Roomba-XXXXXXXX")
+3. Connect your computer to the Roomba's Wi-Fi network
+4. Run discovery again to get the Roomba's IP on its own network:
+   ```bash
+   dotnet run --project src/RoombaNet.Cli discover
+   ```
+5. Get the password using the new IP address:
+   ```bash
+   dotnet run --project src/RoombaNet.Cli get password --ip 192.168.10.1
+   ```
+   (The IP is typically `192.168.10.1` on the Roomba's network)
+6. Reconnect to your regular Wi-Fi network
+
+**For other models:**
+1. Place Roomba on the dock
+2. Hold the HOME button for about 2 seconds until it plays a series of tones (about 6 beeps)
+3. Run the command immediately:
+   ```bash
+   dotnet run --project src/RoombaNet.Cli get password --ip 192.168.1.100
+   ```
 
 Replace `192.168.1.100` with your Roomba's IP address from step 1.
-
-**Important**: The Roomba must be on the dock and awake for this to work. If it doesn't respond, try pressing the HOME button again.
 
 #### Step 3: Create Configuration File
 

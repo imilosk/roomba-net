@@ -123,6 +123,11 @@ public class RoombaPasswordClient : IRoombaPasswordClient
                 break;
             }
         }
+        catch (InvalidOperationException)
+        {
+            // Roomba didn't send password - return empty string
+            result = string.Empty;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error reading from stream");
@@ -138,11 +143,13 @@ public class RoombaPasswordClient : IRoombaPasswordClient
         switch (data.Length)
         {
             case 2:
-                _logger.LogDebug("Received 2-byte response, setting slice position to 9");
+                _logger.LogDebug("Received 2-byte response, waiting for password data");
                 return string.Empty;
             case <= 7:
-                _logger.LogError("Error getting password. Follow the instructions and try again.");
-                throw new InvalidOperationException("Received data is too short to contain a password");
+                throw new InvalidOperationException(
+                    "Roomba did not send password. Make sure Roomba is on the dock, " +
+                    "hold HOME button for 2 seconds until you hear beeps, " +
+                    "then run this command immediately.");
         }
 
         var passwordBytes = data.Skip(SliceFrom).ToArray();
