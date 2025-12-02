@@ -74,15 +74,47 @@ dotnet build
 
 ### Configuration
 
-Create a `secrets.Development.json` file in the `src/RoombaNet.Settings/` directory:
+#### Step 1: Discover Your Roomba
+
+First, find your Roomba on the network to get its IP address and BLID:
+
+```bash
+dotnet run --project src/RoombaNet.Cli discover
+```
+
+This will display information like:
+```
+Found 1 Roomba(s):
+
+Name:          My Roomba
+BLID:          1234567890ABCDEF
+IP Address:    192.168.1.100
+Hostname:      Roomba-1234567890ABCDEF
+MAC Address:   AA:BB:CC:DD:EE:FF
+SKU/Model:     i355020
+```
+
+#### Step 2: Get Your Roomba Password
+
+To retrieve the password, you need to hold down the HOME button on your Roomba for about 2 seconds until it plays a series of tones (about 6 beeps). Then run:
+
+```bash
+dotnet run --project src/RoombaNet.Cli get password
+```
+
+**Important**: The Roomba must be on the dock and awake for this to work. If it doesn't respond, try pressing the HOME button again.
+
+#### Step 3: Create Configuration File
+
+Create a `secrets.Development.json` file in the `src/RoombaNet.Settings/` directory with the information from steps 1 and 2:
 
 ```json
 {
   "RoombaSettings": {
     "Ip": "192.168.1.100",
     "Port": 8883,
-    "Blid": "your_roomba_blid",
-    "Password": "your_roomba_password"
+    "Blid": "1234567890ABCDEF",
+    "Password": "your_roomba_password_from_step_2"
   }
 }
 ```
@@ -94,26 +126,32 @@ Create a `secrets.Development.json` file in the `src/RoombaNet.Settings/` direct
 Run the CLI tool with different commands:
 
 ```bash
+# Discover Roombas on your network
+dotnet run --project src/RoombaNet.Cli discover
+
+# Get Roomba password (hold HOME button for 2 seconds first)
+dotnet run --project src/RoombaNet.Cli get password
+
 # Make the Roomba beep (find command)
-dotnet run --project src/RoombaNet.Cli -- execute find
+dotnet run --project src/RoombaNet.Cli execute find
 
 # Start cleaning
-dotnet run --project src/RoombaNet.Cli -- execute start
+dotnet run --project src/RoombaNet.Cli execute start
 
 # Return to dock
-dotnet run --project src/RoombaNet.Cli -- execute dock
+dotnet run --project src/RoombaNet.Cli execute dock
 
 # Subscribe to all Roomba events and messages
-dotnet run --project src/RoombaNet.Cli -- subscribe
+dotnet run --project src/RoombaNet.Cli subscribe
 
 # Get current settings
-dotnet run --project src/RoombaNet.Cli -- get
+dotnet run --project src/RoombaNet.Cli get
 
 # Change settings (e.g., enable two-pass cleaning)
-dotnet run --project src/RoombaNet.Cli -- setting twoPass true
+dotnet run --project src/RoombaNet.Cli setting twoPass true
 
 # Get help and see all available commands
-dotnet run --project src/RoombaNet.Cli -- --help
+dotnet run --project src/RoombaNet.Cli --help
 ```
 
 Example output when using the `execute` command:
