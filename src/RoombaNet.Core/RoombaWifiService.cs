@@ -1,10 +1,8 @@
-using System.Text;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Formatter;
 using RoombaNet.Core.Constants;
-using RoombaNet.Core.Payloads;
+using RoombaNet.Core.WifiConfig;
 using RoombaNet.Settings.Settings;
 
 namespace RoombaNet.Core;
@@ -14,15 +12,18 @@ public class RoombaWifiService : IRoombaWifiService
     private readonly ILogger<RoombaWifiService> _logger;
     private readonly MqttClientFactory _mqttClientFactory;
     private readonly RoombaSettings _roombaSettings;
+    private readonly WifiConfigCommandBuilder _commandBuilder;
 
     public RoombaWifiService(
         ILogger<RoombaWifiService> logger,
         MqttClientFactory mqttClientFactory,
-        RoombaSettings roombaSettings)
+        RoombaSettings roombaSettings,
+        WifiConfigCommandBuilder commandBuilder)
     {
         _logger = logger;
         _mqttClientFactory = mqttClientFactory;
         _roombaSettings = roombaSettings;
+        _commandBuilder = commandBuilder;
     }
 
     public async Task<bool> ConfigureWifiAsync(
@@ -49,7 +50,7 @@ public class RoombaWifiService : IRoombaWifiService
                 })
                 .Build();
 
-            _logger.LogInformation("Connecting to Roomba's AP network at {Address}...", RoombaWifi.DefaultApAddress);
+            _logger.LogDebug("Connecting to Roomba's AP network at {Address}...", RoombaWifi.DefaultApAddress);
             var connectResult = await client.ConnectAsync(options, cancellationToken);
 
             if (connectResult.ResultCode != MqttClientConnectResultCode.Success)
@@ -58,11 +59,7 @@ public class RoombaWifiService : IRoombaWifiService
                 return false;
             }
 
-            await SendWifiConfiguration(
-                client,
-                request,
-                cancellationToken
-            );
+            await ExecuteConfigurationCommands(client, request, cancellationToken);
 
             _logger.LogInformation("Wi-Fi configuration sent successfully");
 
@@ -84,183 +81,18 @@ public class RoombaWifiService : IRoombaWifiService
         }
     }
 
-    private async Task SendWifiConfiguration(
+    private async Task ExecuteConfigurationCommands(
         IMqttClient client,
         WifiConfigurationRequest request,
-        CancellationToken cancellationToken
-    )
+        CancellationToken cancellationToken)
     {
-        var messages = new List<(string topic, object state)>();
+        var commands = _commandBuilder.BuildCommandSequence(request);
 
-        messages.Add((RoombaTopic.WifiCtl, new WActivateState
+        foreach (var command in commands)
         {
-            WActivate = false,
-        }));
-
-        var utcTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        messages.Add((RoombaTopic.WifiCtl, new UtcTimeState
-        {
-            UtcTime = utcTime,
-        }));
-
-        var localTimeOffset = (int)TimeZoneInfo.Local.BaseUtcOffset.TotalMinutes;
-        messages.Add((RoombaTopic.WifiCtl, new LocalTimeOffsetState
-        {
-            LocalTimeOffset = localTimeOffset,
-        }));
-
-        if (!string.IsNullOrEmpty(request.Timezone))
-        {
-            _logger.LogInformation("Setting timezone: {Timezone}", request.Timezone);
-            messages.Add((RoombaTopic.Delta, new TimezoneState
-            {
-                Timezone = request.Timezone,
-            }));
-        }
-
-        if (!string.IsNullOrEmpty(request.Country))
-        {
-            _logger.LogInformation("Setting country: {Country}", request.Country);
-            messages.Add((RoombaTopic.Delta, new CountryState
-            {
-                Country = request.Country,
-            }));
-        }
-
-        if (!string.IsNullOrEmpty(request.RobotName))
-        {
-            _logger.LogInformation("Setting robot name: {RobotName}", request.RobotName);
-            messages.Add((RoombaTopic.Delta, new NameState
-            {
-                Name = request.RobotName,
-            }));
-        }
-
-        var credentials = new WifiCredentials
-        {
-            Sec = 7, // WPA2-PSK
-        };
-
-        if (request.FirmwareVersion == 2)
-        {
-            credentials.Ssid = request.Ssid;
-            credentials.Pass = request.Password;
-        }
-        else
-        {
-            credentials.Ssid = ToHex(request.Ssid);
-            credentials.Pass = ToHex(request.Password);
-        }
-
-        messages.Add((RoombaTopic.WifiCtl, new WlcfgState
-        {
-            Wlcfg = credentials,
-        }));
-
-        messages.Add((RoombaTopic.WifiCtl, new ChkSsidState
-        {
-            ChkSsid = true,
-        }));
-        messages.Add((RoombaTopic.WifiCtl, new WActivateState
-        {
-            WActivate = true,
-        }));
-        messages.Add((RoombaTopic.WifiCtl, new GetState
-        {
-            Get = "netinfo",
-        }));
-
-        messages.Add((RoombaTopic.WifiCtl, new UapState
-        {
-            Uap = false,
-        }));
-
-        foreach (var (topic, state) in messages)
-        {
-            var payload = SerializeState(state);
-
-            var message = new MqttApplicationMessageBuilder()
-                .WithTopic(topic)
-                .WithPayload(payload)
-                .Build();
-
-            await client.PublishAsync(message, cancellationToken);
-            _logger.LogDebug("Published to {Topic}: {Payload}", topic, payload);
+            _logger.LogDebug("Executing: {Description}", command.Description);
+            await command.ExecuteAsync(client, cancellationToken);
             await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
         }
-    }
-
-    private static string SerializeState(object state)
-    {
-        return state switch
-        {
-            WActivateState s => JsonSerializer.Serialize(
-                new WifiConfigMessage<WActivateState>
-                {
-                    State = s
-                },
-                WifiConfigJsonContext.Default.WifiConfigMessageWActivateState),
-            UtcTimeState s => JsonSerializer.Serialize(
-                new WifiConfigMessage<UtcTimeState>
-                {
-                    State = s
-                },
-                WifiConfigJsonContext.Default.WifiConfigMessageUtcTimeState),
-            LocalTimeOffsetState s => JsonSerializer.Serialize(
-                new WifiConfigMessage<LocalTimeOffsetState>
-                {
-                    State = s
-                },
-                WifiConfigJsonContext.Default.WifiConfigMessageLocalTimeOffsetState),
-            TimezoneState s => JsonSerializer.Serialize(
-                new WifiConfigMessage<TimezoneState>
-                {
-                    State = s
-                },
-                WifiConfigJsonContext.Default.WifiConfigMessageTimezoneState),
-            CountryState s => JsonSerializer.Serialize(
-                new WifiConfigMessage<CountryState>
-                {
-                    State = s
-                },
-                WifiConfigJsonContext.Default.WifiConfigMessageCountryState),
-            NameState s => JsonSerializer.Serialize(
-                new WifiConfigMessage<NameState>
-                {
-                    State = s
-                },
-                WifiConfigJsonContext.Default.WifiConfigMessageNameState),
-            WlcfgState s => JsonSerializer.Serialize(
-                new WifiConfigMessage<WlcfgState>
-                {
-                    State = s
-                },
-                WifiConfigJsonContext.Default.WifiConfigMessageWlcfgState),
-            ChkSsidState s => JsonSerializer.Serialize(
-                new WifiConfigMessage<ChkSsidState>
-                {
-                    State = s
-                },
-                WifiConfigJsonContext.Default.WifiConfigMessageChkSsidState),
-            GetState s => JsonSerializer.Serialize(
-                new WifiConfigMessage<GetState>
-                {
-                    State = s
-                },
-                WifiConfigJsonContext.Default.WifiConfigMessageGetState),
-            UapState s => JsonSerializer.Serialize(
-                new WifiConfigMessage<UapState>
-                {
-                    State = s
-                },
-                WifiConfigJsonContext.Default.WifiConfigMessageUapState),
-            _ => throw new ArgumentException($"Unknown state type: {state.GetType()}")
-        };
-    }
-
-    private static string ToHex(string input)
-    {
-        var bytes = Encoding.UTF8.GetBytes(input);
-        return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 }

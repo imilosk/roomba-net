@@ -20,6 +20,7 @@ public static class Bootstrapper
         services.AddPasswordClient(configuration);
 
         services.TryAddSingleton<IMqttPublisher, MqttPublisher>();
+        services.TryAddSingleton<WifiConfig.WifiConfigCommandBuilder>();
         services.TryAddSingleton<IRoombaConnectionManager, RoombaConnectionManager>();
         services.TryAddSingleton<IRoombaCommandService, RoombaCommandService>();
         services.TryAddSingleton<IRoombaSettingsService, RoombaSettingsService>();
