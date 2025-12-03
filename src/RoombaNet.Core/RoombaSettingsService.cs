@@ -5,7 +5,6 @@ using MQTTnet;
 using RoombaNet.Core.Constants;
 using RoombaNet.Core.Payloads;
 using RoombaNet.Transport.Mqtt;
-using RoombaNet.Transport.Tls;
 using RoombaJsonContext = RoombaNet.Core.Payloads.RoombaJsonContext;
 
 namespace RoombaNet.Core;
@@ -15,22 +14,16 @@ public class RoombaSettingsService : IRoombaSettingsService
     private readonly ILogger<RoombaSettingsService> _logger;
     private readonly IRoombaConnectionManager _connectionManager;
     private readonly IMqttPublisher _mqttPublisher;
-    private readonly IRoombaPasswordClient _roombaPasswordClient;
-    private readonly IRoombaDiscoveryClient _roombaDiscoveryClient;
 
     public RoombaSettingsService(
         ILogger<RoombaSettingsService> logger,
         IRoombaConnectionManager connectionManager,
-        IMqttPublisher mqttPublisher,
-        IRoombaPasswordClient roombaPasswordClient,
-        IRoombaDiscoveryClient roombaDiscoveryClient
+        IMqttPublisher mqttPublisher
     )
     {
         _logger = logger;
         _connectionManager = connectionManager;
         _mqttPublisher = mqttPublisher;
-        _roombaPasswordClient = roombaPasswordClient;
-        _roombaDiscoveryClient = roombaDiscoveryClient;
     }
 
     public async Task SetChildLock(bool enable, CancellationToken cancellationToken = default)
@@ -41,20 +34,6 @@ public class RoombaSettingsService : IRoombaSettingsService
     public async Task SetBinPause(bool enable, CancellationToken cancellationToken = default)
     {
         await SetSetting(RoombaSetting.BinPause, enable, cancellationToken);
-    }
-
-    public async Task<string> GetPassword(
-        string ipAddress,
-        int port = 8883,
-        CancellationToken cancellationToken = default
-    )
-    {
-        return await _roombaPasswordClient.GetPassword(ipAddress, port, cancellationToken);
-    }
-
-    public async Task<List<RoombaInfo>> DiscoverRoombas(CancellationToken cancellationToken = default)
-    {
-        return await _roombaDiscoveryClient.DiscoverRoombas(cancellationToken: cancellationToken);
     }
 
     public async Task CleaningPasses(RoombaCleaningPasses passes, CancellationToken cancellationToken = default)

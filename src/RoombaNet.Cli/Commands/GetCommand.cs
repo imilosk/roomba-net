@@ -5,15 +5,15 @@ namespace RoombaNet.Cli.Commands;
 
 public class GetCommand : Command
 {
-    private readonly IRoombaSettingsService _roombaSettingsClient;
+    private readonly IRoombaPasswordService _roombaPasswordService;
     private readonly CancellationToken _cancellationToken;
 
     public GetCommand(
-        IRoombaSettingsService roombaSettingsClient,
+        IRoombaPasswordService roombaPasswordService,
         CancellationToken cancellationToken = default
     ) : base("get", "Get the Roomba settings")
     {
-        _roombaSettingsClient = roombaSettingsClient;
+        _roombaPasswordService = roombaPasswordService;
         _cancellationToken = cancellationToken;
 
         var passwordCommand = new Command("password", "Get Roomba password (hold HOME button for 2 seconds first)");
@@ -53,7 +53,7 @@ public class GetCommand : Command
     {
         try
         {
-            var password = await _roombaSettingsClient.GetPassword(ipAddress, port, _cancellationToken);
+            var password = await _roombaPasswordService.GetPassword(ipAddress, port, _cancellationToken);
             if (string.IsNullOrEmpty(password))
             {
                 Console.WriteLine("Failed to retrieve password. See README for instructions.");

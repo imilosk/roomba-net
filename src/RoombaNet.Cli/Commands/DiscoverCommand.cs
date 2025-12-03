@@ -5,15 +5,15 @@ namespace RoombaNet.Cli.Commands;
 
 public class DiscoverCommand : Command
 {
-    private readonly IRoombaSettingsService _roombaSettingsClient;
+    private readonly IRoombaDiscoveryService _roombaDiscoveryService;
     private readonly CancellationToken _cancellationToken;
 
     public DiscoverCommand(
-        IRoombaSettingsService roombaSettingsClient,
+        IRoombaDiscoveryService roombaDiscoveryService,
         CancellationToken cancellationToken = default
     ) : base("discover", "Discover Roombas on the local network")
     {
-        _roombaSettingsClient = roombaSettingsClient;
+        _roombaDiscoveryService = roombaDiscoveryService;
         _cancellationToken = cancellationToken;
 
         SetAction(async _ => await DiscoverRoombas());
@@ -21,7 +21,7 @@ public class DiscoverCommand : Command
 
     private async Task DiscoverRoombas()
     {
-        var roombas = await _roombaSettingsClient.DiscoverRoombas(_cancellationToken);
+        var roombas = await _roombaDiscoveryService.DiscoverRoombas(cancellationToken: _cancellationToken);
 
         if (roombas.Count == 0)
         {
