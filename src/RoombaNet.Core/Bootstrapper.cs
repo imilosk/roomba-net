@@ -15,6 +15,7 @@ public static class Bootstrapper
         services.AddMqtt(configuration);
         services.AddPasswordClient(configuration);
 
+        services.TryAddSingleton<IMqttPublisher, MqttPublisher>();
         services.TryAddSingleton<IRoombaConnectionManager, RoombaConnectionManager>();
         services.TryAddSingleton<IRoombaCommandService, RoombaCommandService>();
         services.TryAddSingleton<IRoombaSettingsService, RoombaSettingsService>();

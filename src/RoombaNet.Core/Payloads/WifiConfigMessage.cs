@@ -2,81 +2,54 @@ using System.Text.Json.Serialization;
 
 namespace RoombaNet.Core.Payloads;
 
-/// <summary>
-/// Base wrapper for all Wi-Fi configuration messages.
-/// </summary>
 public class WifiConfigMessage<T>
 {
     [JsonPropertyName("state")]
     public T State { get; set; } = default!;
 }
 
-/// <summary>
-/// State for activating/deactivating Wi-Fi.
-/// </summary>
 public class WActivateState
 {
     [JsonPropertyName("wactivate")]
     public bool WActivate { get; set; }
 }
 
-/// <summary>
-/// State for setting UTC time.
-/// </summary>
 public class UtcTimeState
 {
     [JsonPropertyName("utctime")]
     public long UtcTime { get; set; }
 }
 
-/// <summary>
-/// State for setting local time offset.
-/// </summary>
 public class LocalTimeOffsetState
 {
     [JsonPropertyName("localtimeoffset")]
     public int LocalTimeOffset { get; set; }
 }
 
-/// <summary>
-/// State for timezone configuration.
-/// </summary>
 public class TimezoneState
 {
     [JsonPropertyName("timezone")]
     public string Timezone { get; set; } = string.Empty;
 }
 
-/// <summary>
-/// State for country configuration.
-/// </summary>
 public class CountryState
 {
     [JsonPropertyName("country")]
     public string Country { get; set; } = string.Empty;
 }
 
-/// <summary>
-/// State for robot name configuration.
-/// </summary>
 public class NameState
 {
     [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
 }
 
-/// <summary>
-/// State for Wi-Fi credentials configuration.
-/// </summary>
 public class WlcfgState
 {
     [JsonPropertyName("wlcfg")]
     public WifiCredentials Wlcfg { get; set; } = new();
 }
 
-/// <summary>
-/// Wi-Fi credentials with security settings.
-/// </summary>
 public class WifiCredentials
 {
     [JsonPropertyName("sec")]
@@ -89,36 +62,24 @@ public class WifiCredentials
     public string Pass { get; set; } = string.Empty;
 }
 
-/// <summary>
-/// State for checking SSID.
-/// </summary>
 public class ChkSsidState
 {
     [JsonPropertyName("chkssid")]
     public bool ChkSsid { get; set; }
 }
 
-/// <summary>
-/// State for getting network info.
-/// </summary>
 public class GetState
 {
     [JsonPropertyName("get")]
     public string Get { get; set; } = string.Empty;
 }
 
-/// <summary>
-/// State for enabling/disabling access point mode.
-/// </summary>
 public class UapState
 {
     [JsonPropertyName("uap")]
     public bool Uap { get; set; }
 }
 
-/// <summary>
-/// JSON serializer context for Wi-Fi configuration messages.
-/// </summary>
 [JsonSerializable(typeof(WifiConfigMessage<WActivateState>))]
 [JsonSerializable(typeof(WifiConfigMessage<UtcTimeState>))]
 [JsonSerializable(typeof(WifiConfigMessage<LocalTimeOffsetState>))]

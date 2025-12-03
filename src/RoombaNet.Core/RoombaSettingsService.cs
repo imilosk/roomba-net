@@ -1,7 +1,7 @@
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
-using MQTTnet.Protocol;
 using RoombaNet.Core.Constants;
 using RoombaNet.Core.Payloads;
 using RoombaNet.Transport.Mqtt;
@@ -14,18 +14,21 @@ public class RoombaSettingsService : IRoombaSettingsService
 {
     private readonly ILogger<RoombaSettingsService> _logger;
     private readonly IRoombaConnectionManager _connectionManager;
+    private readonly IMqttPublisher _mqttPublisher;
     private readonly IRoombaPasswordClient _roombaPasswordClient;
     private readonly IRoombaDiscoveryClient _roombaDiscoveryClient;
 
     public RoombaSettingsService(
         ILogger<RoombaSettingsService> logger,
         IRoombaConnectionManager connectionManager,
+        IMqttPublisher mqttPublisher,
         IRoombaPasswordClient roombaPasswordClient,
         IRoombaDiscoveryClient roombaDiscoveryClient
     )
     {
         _logger = logger;
         _connectionManager = connectionManager;
+        _mqttPublisher = mqttPublisher;
         _roombaPasswordClient = roombaPasswordClient;
         _roombaDiscoveryClient = roombaDiscoveryClient;
     }
@@ -112,18 +115,10 @@ public class RoombaSettingsService : IRoombaSettingsService
 
         var payload = new SettingPayload<T>(desired);
 
-        return await PublishMessage(mqttClient, topic, payload, cancellationToken);
-    }
+        var jsonTypeInfo = GetSettingPayloadTypeInfo<T>();
 
-    private async Task<bool> PublishMessage<T>(
-        IMqttClient mqttClient,
-        string topic,
-        SettingPayload<T> payload,
-        CancellationToken cancellationToken = default
-    )
-    {
         Console.WriteLine(
-            $"Publishing to topic '{topic}', settings: {JsonSerializer.Serialize(payload, payload.GetType(), RoombaJsonContext.Default)}"
+            $"Publishing to topic '{topic}', settings: {JsonSerializer.Serialize(payload, jsonTypeInfo)}"
         );
 
         _logger.LogInformation(
@@ -132,30 +127,28 @@ public class RoombaSettingsService : IRoombaSettingsService
             payload.State
         );
 
-        var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(
-            payload,
-            payload.GetType(),
-            RoombaJsonContext.Default
-        );
-
-        return await PublishMessage(mqttClient, topic, jsonBytes, cancellationToken);
+        return await _mqttPublisher.PublishAsync(mqttClient, topic, payload, jsonTypeInfo, cancellationToken);
     }
 
-    private static async Task<bool> PublishMessage(
-        IMqttClient mqttClient,
-        string topic,
-        byte[] jsonBytes,
-        CancellationToken cancellationToken = default
-    )
+    private static JsonTypeInfo<SettingPayload<T>> GetSettingPayloadTypeInfo<T>()
     {
-        var message = new MqttApplicationMessageBuilder()
-            .WithTopic(topic)
-            .WithPayload(jsonBytes)
-            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
-            .Build();
+        // Map to the appropriate JsonTypeInfo based on the generic type
+        if (typeof(T) == typeof(bool))
+        {
+            return (JsonTypeInfo<SettingPayload<T>>)(object)RoombaJsonContext.Default.SettingPayloadBoolean;
+        }
 
-        var publishResult = await mqttClient.PublishAsync(message, cancellationToken);
+        if (typeof(T) == typeof(int))
+        {
+            return (JsonTypeInfo<SettingPayload<T>>)(object)RoombaJsonContext.Default.SettingPayloadInt32;
+        }
 
-        return publishResult.IsSuccess;
+        if (typeof(T) == typeof(string))
+        {
+            return (JsonTypeInfo<SettingPayload<T>>)(object)RoombaJsonContext.Default.SettingPayloadString;
+        }
+
+        throw new NotSupportedException(
+            $"Type {typeof(T).Name} is not supported for settings serialization. Add it to RoombaJsonContext.");
     }
 }

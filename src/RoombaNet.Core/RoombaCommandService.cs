@@ -1,7 +1,5 @@
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
-using MQTTnet.Protocol;
 using RoombaNet.Core.Constants;
 using RoombaNet.Core.Extensions;
 using RoombaNet.Core.Payloads;
@@ -16,16 +14,19 @@ public class RoombaCommandService : IRoombaCommandService
 
     private readonly ILogger<RoombaCommandService> _logger;
     private readonly IRoombaConnectionManager _connectionManager;
+    private readonly IMqttPublisher _mqttPublisher;
     private readonly TimeProvider _timeProvider;
 
     public RoombaCommandService(
         ILogger<RoombaCommandService> logger,
         IRoombaConnectionManager connectionManager,
+        IMqttPublisher mqttPublisher,
         TimeProvider timeProvider
     )
     {
         _logger = logger;
         _connectionManager = connectionManager;
+        _mqttPublisher = mqttPublisher;
         _timeProvider = timeProvider;
     }
 
@@ -103,47 +104,19 @@ public class RoombaCommandService : IRoombaCommandService
             MessageInitiator
         );
 
-        return await PublishMessage(mqttClient, topic, payload, cancellationToken);
-    }
-
-    private async Task<bool> PublishMessage(
-        IMqttClient mqttClient,
-        string topic,
-        CommandPayload payload,
-        CancellationToken cancellationToken = default
-    )
-    {
         _logger.LogInformation(
-            "Publishing to topic '{Topic}', command: '{Payload}', '{Time}'",
+            "Publishing to topic '{Topic}', command: '{Command}', '{Time}'",
             topic,
             payload.Command,
             payload.Time
         );
 
-        var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(
+        return await _mqttPublisher.PublishAsync(
+            mqttClient,
+            topic,
             payload,
-            payload.GetType(),
-            RoombaJsonContext.Default
+            RoombaJsonContext.Default.CommandPayload,
+            cancellationToken
         );
-
-        return await PublishMessage(mqttClient, topic, jsonBytes, cancellationToken);
-    }
-
-    private static async Task<bool> PublishMessage(
-        IMqttClient mqttClient,
-        string topic,
-        byte[] jsonBytes,
-        CancellationToken cancellationToken = default
-    )
-    {
-        var message = new MqttApplicationMessageBuilder()
-            .WithTopic(topic)
-            .WithPayload(jsonBytes)
-            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
-            .Build();
-
-        var publishResult = await mqttClient.PublishAsync(message, cancellationToken);
-
-        return publishResult.IsSuccess;
     }
 }
