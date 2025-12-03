@@ -21,7 +21,7 @@ public class DiscoverCommand : Command
 
     private async Task DiscoverRoombas()
     {
-        var roombas = await _roombaSettingsClient.GetRoombas(_cancellationToken);
+        var roombas = await _roombaSettingsClient.DiscoverRoombas(_cancellationToken);
 
         if (roombas.Count == 0)
         {

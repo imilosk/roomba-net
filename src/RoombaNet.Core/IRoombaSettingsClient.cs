@@ -9,5 +9,5 @@ public interface IRoombaSettingsClient
     Task SetBinPause(bool enable, CancellationToken cancellationToken = default);
     Task CleaningPasses(RoombaCleaningPasses passes, CancellationToken cancellationToken = default);
     Task<string> GetPassword(string ipAddress, int port = 8883, CancellationToken cancellationToken = default);
-    Task<List<RoombaInfo>> GetRoombas(CancellationToken cancellationToken = default);
+    Task<List<RoombaInfo>> DiscoverRoombas(CancellationToken cancellationToken = default);
 }

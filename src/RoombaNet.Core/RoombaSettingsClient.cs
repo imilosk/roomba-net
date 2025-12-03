@@ -50,9 +50,9 @@ public class RoombaSettingsClient : IRoombaSettingsClient
         return await _roombaPasswordClient.GetPassword(ipAddress, port, cancellationToken);
     }
 
-    public async Task<List<RoombaInfo>> GetRoombas(CancellationToken cancellationToken = default)
+    public async Task<List<RoombaInfo>> DiscoverRoombas(CancellationToken cancellationToken = default)
     {
-        return await _roombaDiscoveryClient.DiscoverRoombasAsync(cancellationToken: cancellationToken);
+        return await _roombaDiscoveryClient.DiscoverRoombas(cancellationToken: cancellationToken);
     }
 
     public async Task CleaningPasses(RoombaCleaningPasses passes, CancellationToken cancellationToken = default)

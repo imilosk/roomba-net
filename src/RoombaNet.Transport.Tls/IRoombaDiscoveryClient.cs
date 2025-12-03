@@ -8,5 +8,5 @@ public interface IRoombaDiscoveryClient
     /// <param name="timeoutSeconds">How long to wait for responses in seconds.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A list of discovered Roombas with their information.</returns>
-    Task<List<RoombaInfo>> DiscoverRoombasAsync(int timeoutSeconds = 5, CancellationToken cancellationToken = default);
+    Task<List<RoombaInfo>> DiscoverRoombas(int timeoutSeconds = 5, CancellationToken cancellationToken = default);
 }

@@ -138,6 +138,26 @@ Create a `secrets.Development.json` file in the `src/RoombaNet.Settings/` direct
 }
 ```
 
+### Configure Wi-Fi
+
+If you don't want to use the iRobot app, you can configure your Roomba's Wi-Fi settings directly using this CLI:
+
+1. **Put Roomba in configuration mode** (same as Step 2 above for password)
+2. **Connect your computer to the Roomba's Wi-Fi network**
+3. **Run the configure-wifi command:**
+   ```bash
+   dotnet run --project src/RoombaNet.Cli configure-wifi \
+     --ssid "YourWiFiNetwork" \
+     --password "YourWiFiPassword"
+   ```
+
+Optional parameters:
+- `--robot-name "My Roomba"` - Set a custom name
+- `--timezone "America/New_York"` - Set IANA timezone
+- `--country "US"` - Set country code
+
+After configuration, the Roomba will connect to your Wi-Fi network within a minute. **Important:** Do not press any buttons on the Roomba while it's connecting to Wi-Fi. Once the configuration is complete, the Roomba will exit configuration mode and you'll hear a confirmation beep. You can then reconnect your computer to your regular network.
+
 ## 📖 Usage Examples
 
 ### CLI Commands
@@ -147,6 +167,9 @@ Run the CLI tool with different commands:
 ```bash
 # Discover Roombas on your network
 dotnet run --project src/RoombaNet.Cli discover
+
+# Configure Wi-Fi settings (connect to Roomba's network first)
+dotnet run --project src/RoombaNet.Cli configure-wifi --ssid "YourNetwork" --password "YourPassword"
 
 # Get Roomba password (hold HOME button for 2 seconds first)
 dotnet run --project src/RoombaNet.Cli get password
@@ -333,7 +356,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - iRobot for creating the robots
 - The reverse engineering community for MQTT protocol documentation
     - https://github.com/koalazak/dorita980
-    - https://github.com/imilosk/roomba-net-ui
+    - https://github.com/pschmitt/roombapy
+    - https://github.com/v6ak/Roomba980-Python-WiFi-only
 - All contributors and testers
 
 ## ⚠️ Disclaimer
