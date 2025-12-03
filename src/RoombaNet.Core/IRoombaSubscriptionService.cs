@@ -2,7 +2,7 @@ using MQTTnet;
 
 namespace RoombaNet.Core;
 
-public interface IRoombaSubscriber
+public interface IRoombaSubscriptionService
 {
     Task Subscribe(
         Action<MqttApplicationMessageReceivedEventArgs> onMessageReceived,

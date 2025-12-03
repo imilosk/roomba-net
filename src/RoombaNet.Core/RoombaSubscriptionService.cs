@@ -5,15 +5,15 @@ using RoombaNet.Transport.Mqtt;
 
 namespace RoombaNet.Core;
 
-public class RoombaSubscriber : IRoombaSubscriber
+public class RoombaSubscriptionService : IRoombaSubscriptionService
 {
     private readonly IRoombaConnectionManager _connectionManager;
-    private readonly ILogger<RoombaSubscriber> _logger;
+    private readonly ILogger<RoombaSubscriptionService> _logger;
     private readonly MqttClientSubscribeOptions _subscribeOptions;
 
-    public RoombaSubscriber(
+    public RoombaSubscriptionService(
         IRoombaConnectionManager connectionManager,
-        ILogger<RoombaSubscriber> logger
+        ILogger<RoombaSubscriptionService> logger
     )
     {
         _connectionManager = connectionManager;

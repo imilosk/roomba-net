@@ -3,22 +3,20 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Formatter;
+using RoombaNet.Core.Constants;
 using RoombaNet.Core.Payloads;
 using RoombaNet.Settings.Settings;
 
 namespace RoombaNet.Core;
 
-public class RoombaWifiClient : IRoombaWifiClient
+public class RoombaWifiService : IRoombaWifiService
 {
-    private const string RoombaApAddress = "192.168.10.1";
-    private const int RoombaApPort = 8883;
-
-    private readonly ILogger<RoombaWifiClient> _logger;
+    private readonly ILogger<RoombaWifiService> _logger;
     private readonly MqttClientFactory _mqttClientFactory;
     private readonly RoombaSettings _roombaSettings;
 
-    public RoombaWifiClient(
-        ILogger<RoombaWifiClient> logger,
+    public RoombaWifiService(
+        ILogger<RoombaWifiService> logger,
         MqttClientFactory mqttClientFactory,
         RoombaSettings roombaSettings)
     {
@@ -28,22 +26,18 @@ public class RoombaWifiClient : IRoombaWifiClient
     }
 
     public async Task<bool> ConfigureWifiAsync(
-        string wifiSsid,
-        string wifiPassword,
-        string? robotName = null,
-        string? timezone = null,
-        string? country = null,
+        WifiConfigurationRequest request,
         CancellationToken cancellationToken = default)
     {
         IMqttClient? client = null;
         try
         {
-            _logger.LogInformation("Starting Wi-Fi configuration for SSID: {Ssid}", wifiSsid);
+            _logger.LogInformation("Starting Wi-Fi configuration for SSID: {Ssid}", request.Ssid);
 
             // Connect to Roomba's AP network (192.168.10.1)
             client = _mqttClientFactory.CreateMqttClient();
             var options = new MqttClientOptionsBuilder()
-                .WithTcpServer(RoombaApAddress, RoombaApPort)
+                .WithTcpServer(RoombaWifi.DefaultApAddress, RoombaWifi.DefaultApPort)
                 .WithClientId(_roombaSettings.Blid)
                 .WithCredentials(_roombaSettings.Blid, _roombaSettings.Password)
                 .WithCleanSession()
@@ -55,7 +49,7 @@ public class RoombaWifiClient : IRoombaWifiClient
                 })
                 .Build();
 
-            _logger.LogInformation("Connecting to Roomba's AP network at {Address}...", RoombaApAddress);
+            _logger.LogInformation("Connecting to Roomba's AP network at {Address}...", RoombaWifi.DefaultApAddress);
             var connectResult = await client.ConnectAsync(options, cancellationToken);
 
             if (connectResult.ResultCode != MqttClientConnectResultCode.Success)
@@ -64,18 +58,9 @@ public class RoombaWifiClient : IRoombaWifiClient
                 return false;
             }
 
-            // Assume firmware v3+ for most modern Roombas
-            const int fwVersion = 3;
-
-            // Send Wi-Fi configuration messages
-            await SendWifiConfigurationAsync(
+            await SendWifiConfiguration(
                 client,
-                wifiSsid,
-                wifiPassword,
-                robotName,
-                timezone,
-                country,
-                fwVersion,
+                request,
                 cancellationToken
             );
 
@@ -99,114 +84,97 @@ public class RoombaWifiClient : IRoombaWifiClient
         }
     }
 
-    private async Task SendWifiConfigurationAsync(
+    private async Task SendWifiConfiguration(
         IMqttClient client,
-        string wifiSsid,
-        string wifiPassword,
-        string? robotName,
-        string? timezone,
-        string? country,
-        int fwVersion,
+        WifiConfigurationRequest request,
         CancellationToken cancellationToken
     )
     {
         var messages = new List<(string topic, object state)>();
 
-        // Deactivate current Wi-Fi
-        messages.Add(("wifictl", new WActivateState
+        messages.Add((RoombaTopic.WifiCtl, new WActivateState
         {
-            WActivate = false
+            WActivate = false,
         }));
 
-        // Set time
         var utcTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        messages.Add(("wifictl", new UtcTimeState
+        messages.Add((RoombaTopic.WifiCtl, new UtcTimeState
         {
-            UtcTime = utcTime
+            UtcTime = utcTime,
         }));
 
-        // Set local time offset (in minutes)
         var localTimeOffset = (int)TimeZoneInfo.Local.BaseUtcOffset.TotalMinutes;
-        messages.Add(("wifictl", new LocalTimeOffsetState
+        messages.Add((RoombaTopic.WifiCtl, new LocalTimeOffsetState
         {
-            LocalTimeOffset = localTimeOffset
+            LocalTimeOffset = localTimeOffset,
         }));
 
-        // Set timezone if provided
-        if (!string.IsNullOrEmpty(timezone))
+        if (!string.IsNullOrEmpty(request.Timezone))
         {
-            _logger.LogInformation("Setting timezone: {Timezone}", timezone);
-            messages.Add(("delta", new TimezoneState
+            _logger.LogInformation("Setting timezone: {Timezone}", request.Timezone);
+            messages.Add((RoombaTopic.Delta, new TimezoneState
             {
-                Timezone = timezone
+                Timezone = request.Timezone,
             }));
         }
 
-        // Set country if provided
-        if (!string.IsNullOrEmpty(country))
+        if (!string.IsNullOrEmpty(request.Country))
         {
-            _logger.LogInformation("Setting country: {Country}", country);
-            messages.Add(("delta", new CountryState
+            _logger.LogInformation("Setting country: {Country}", request.Country);
+            messages.Add((RoombaTopic.Delta, new CountryState
             {
-                Country = country
+                Country = request.Country,
             }));
         }
 
-        // Set robot name if provided
-        if (!string.IsNullOrEmpty(robotName))
+        if (!string.IsNullOrEmpty(request.RobotName))
         {
-            _logger.LogInformation("Setting robot name: {RobotName}", robotName);
-            messages.Add(("delta", new NameState
+            _logger.LogInformation("Setting robot name: {RobotName}", request.RobotName);
+            messages.Add((RoombaTopic.Delta, new NameState
             {
-                Name = robotName
+                Name = request.RobotName,
             }));
         }
 
-        // Configure Wi-Fi credentials
         var credentials = new WifiCredentials
         {
             Sec = 7, // WPA2-PSK
         };
 
-        if (fwVersion == 2)
+        if (request.FirmwareVersion == 2)
         {
-            // Firmware v2: plain text
-            credentials.Ssid = wifiSsid;
-            credentials.Pass = wifiPassword;
+            credentials.Ssid = request.Ssid;
+            credentials.Pass = request.Password;
         }
         else
         {
-            // Firmware v3+: hex-encoded
-            credentials.Ssid = ToHex(wifiSsid);
-            credentials.Pass = ToHex(wifiPassword);
+            credentials.Ssid = ToHex(request.Ssid);
+            credentials.Pass = ToHex(request.Password);
         }
 
-        messages.Add(("wifictl", new WlcfgState
+        messages.Add((RoombaTopic.WifiCtl, new WlcfgState
         {
-            Wlcfg = credentials
+            Wlcfg = credentials,
         }));
 
-        // Check SSID and activate
-        messages.Add(("wifictl", new ChkSsidState
+        messages.Add((RoombaTopic.WifiCtl, new ChkSsidState
         {
-            ChkSsid = true
+            ChkSsid = true,
         }));
-        messages.Add(("wifictl", new WActivateState
+        messages.Add((RoombaTopic.WifiCtl, new WActivateState
         {
-            WActivate = true
+            WActivate = true,
         }));
-        messages.Add(("wifictl", new GetState
+        messages.Add((RoombaTopic.WifiCtl, new GetState
         {
-            Get = "netinfo"
-        }));
-
-        // Disable access point mode
-        messages.Add(("wifictl", new UapState
-        {
-            Uap = false
+            Get = "netinfo",
         }));
 
-        // Publish messages with delay
+        messages.Add((RoombaTopic.WifiCtl, new UapState
+        {
+            Uap = false,
+        }));
+
         foreach (var (topic, state) in messages)
         {
             var payload = SerializeState(state);
@@ -218,7 +186,7 @@ public class RoombaWifiClient : IRoombaWifiClient
 
             await client.PublishAsync(message, cancellationToken);
             _logger.LogDebug("Published to {Topic}: {Payload}", topic, payload);
-            await Task.Delay(1000, cancellationToken); // 1 second delay between messages
+            await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
         }
     }
 

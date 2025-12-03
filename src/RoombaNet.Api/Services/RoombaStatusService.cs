@@ -11,14 +11,14 @@ public class RoombaStatusService : BackgroundService
     private const string JsonStateProperty = "state";
     private const string JsonReportedProperty = "reported";
 
-    private readonly IRoombaSubscriber _subscriber;
+    private readonly IRoombaSubscriptionService _subscriber;
     private readonly ILogger<RoombaStatusService> _logger;
     private readonly TimeProvider _timeProvider;
     private readonly Channel<RoombaStatusUpdate> _statusChannel;
     private RoombaStatusUpdate _lastStatusUpdate = new(new RoombaState(), DateTime.MinValue);
 
     public RoombaStatusService(
-        IRoombaSubscriber subscriber,
+        IRoombaSubscriptionService subscriber,
         ILogger<RoombaStatusService> logger,
         TimeProvider timeProvider
     )

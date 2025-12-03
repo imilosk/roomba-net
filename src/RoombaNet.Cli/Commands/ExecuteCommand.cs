@@ -5,11 +5,11 @@ namespace RoombaNet.Cli.Commands;
 
 public class ExecuteCommand : Command
 {
-    private readonly IRoombaCommandClient _roombaCommandClient;
+    private readonly IRoombaCommandService _roombaCommandClient;
     private readonly CancellationToken _cancellationToken;
 
     public ExecuteCommand(
-        IRoombaCommandClient roombaClient,
+        IRoombaCommandService roombaClient,
         CancellationToken cancellationToken
     ) : base("command", "Manage Roomba operations")
     {

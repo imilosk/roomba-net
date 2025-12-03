@@ -6,11 +6,11 @@ namespace RoombaNet.Cli.Commands;
 
 public class SubscribeCommand : Command
 {
-    private readonly IRoombaSubscriber _roombaSubscriber;
+    private readonly IRoombaSubscriptionService _roombaSubscriber;
     private readonly CancellationToken _cancellationToken;
 
     public SubscribeCommand(
-        IRoombaSubscriber roombaSubscriber,
+        IRoombaSubscriptionService roombaSubscriber,
         CancellationToken cancellationToken = default
     ) : base("subscribe", "Subscribe to all Roomba events")
     {

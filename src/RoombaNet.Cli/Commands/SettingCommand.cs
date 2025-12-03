@@ -6,11 +6,11 @@ namespace RoombaNet.Cli.Commands;
 
 public class SettingCommand : Command
 {
-    private readonly IRoombaSettingsClient _roombaSettingsClient;
+    private readonly IRoombaSettingsService _roombaSettingsClient;
     private readonly CancellationToken _cancellationToken;
 
     public SettingCommand(
-        IRoombaSettingsClient roombaSettingsClient,
+        IRoombaSettingsService roombaSettingsClient,
         CancellationToken cancellationToken = default
     ) : base("setting", "Manage Roomba settings")
     {

@@ -10,16 +10,15 @@ using RoombaJsonContext = RoombaNet.Core.Payloads.RoombaJsonContext;
 
 namespace RoombaNet.Core;
 
-public class RoombaSettingsClient : IRoombaSettingsClient
+public class RoombaSettingsService : IRoombaSettingsService
 {
-    private readonly ILogger<RoombaSettingsClient> _logger;
+    private readonly ILogger<RoombaSettingsService> _logger;
     private readonly IRoombaConnectionManager _connectionManager;
     private readonly IRoombaPasswordClient _roombaPasswordClient;
     private readonly IRoombaDiscoveryClient _roombaDiscoveryClient;
-    private static readonly MqttApplicationMessageBuilder MessageBuilder = new();
 
-    public RoombaSettingsClient(
-        ILogger<RoombaSettingsClient> logger,
+    public RoombaSettingsService(
+        ILogger<RoombaSettingsService> logger,
         IRoombaConnectionManager connectionManager,
         IRoombaPasswordClient roombaPasswordClient,
         IRoombaDiscoveryClient roombaDiscoveryClient
@@ -149,7 +148,7 @@ public class RoombaSettingsClient : IRoombaSettingsClient
         CancellationToken cancellationToken = default
     )
     {
-        var message = MessageBuilder
+        var message = new MqttApplicationMessageBuilder()
             .WithTopic(topic)
             .WithPayload(jsonBytes)
             .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)

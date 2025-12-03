@@ -5,4 +5,5 @@ internal static class RoombaTopic
     public const string All = "#";
     public const string Cmd = "cmd";
     public const string Delta = "delta";
+    public const string WifiCtl = "wifictl";
 }

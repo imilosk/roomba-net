@@ -6,8 +6,8 @@ namespace RoombaNet.Api.Services;
 
 public class RoombaApiService
 {
-    private readonly IRoombaCommandClient _commandClient;
-    private readonly IRoombaSettingsClient _settingsClient;
+    private readonly IRoombaCommandService _commandClient;
+    private readonly IRoombaSettingsService _settingsClient;
     private readonly ILogger<RoombaApiService> _logger;
     private readonly TimeProvider _timeProvider;
 
@@ -17,8 +17,8 @@ public class RoombaApiService
     ];
 
     public RoombaApiService(
-        IRoombaCommandClient commandClient,
-        IRoombaSettingsClient settingsClient,
+        IRoombaCommandService commandClient,
+        IRoombaSettingsService settingsClient,
         ILogger<RoombaApiService> logger,
         TimeProvider timeProvider)
     {

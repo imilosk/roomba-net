@@ -5,11 +5,11 @@ namespace RoombaNet.Cli.Commands;
 
 public class GetCommand : Command
 {
-    private readonly IRoombaSettingsClient _roombaSettingsClient;
+    private readonly IRoombaSettingsService _roombaSettingsClient;
     private readonly CancellationToken _cancellationToken;
 
     public GetCommand(
-        IRoombaSettingsClient roombaSettingsClient,
+        IRoombaSettingsService roombaSettingsClient,
         CancellationToken cancellationToken = default
     ) : base("get", "Get the Roomba settings")
     {

@@ -16,10 +16,10 @@ public static class Bootstrapper
         services.AddPasswordClient(configuration);
 
         services.TryAddSingleton<IRoombaConnectionManager, RoombaConnectionManager>();
-        services.TryAddSingleton<IRoombaCommandClient, RoombaCommandClient>();
-        services.TryAddSingleton<IRoombaSettingsClient, RoombaSettingsClient>();
-        services.TryAddSingleton<IRoombaSubscriber, RoombaSubscriber>();
-        services.TryAddSingleton<IRoombaWifiClient, RoombaWifiClient>();
+        services.TryAddSingleton<IRoombaCommandService, RoombaCommandService>();
+        services.TryAddSingleton<IRoombaSettingsService, RoombaSettingsService>();
+        services.TryAddSingleton<IRoombaSubscriptionService, RoombaSubscriptionService>();
+        services.TryAddSingleton<IRoombaWifiService, RoombaWifiService>();
 
         return services;
     }

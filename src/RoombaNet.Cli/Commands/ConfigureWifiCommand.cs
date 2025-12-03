@@ -5,11 +5,11 @@ namespace RoombaNet.Cli.Commands;
 
 public class ConfigureWifiCommand : Command
 {
-    private readonly IRoombaWifiClient _wifiClient;
+    private readonly IRoombaWifiService _wifiClient;
     private readonly CancellationToken _cancellationToken;
 
     public ConfigureWifiCommand(
-        IRoombaWifiClient wifiClient,
+        IRoombaWifiService wifiClient,
         CancellationToken cancellationToken = default
     ) : base("configure-wifi", "Configure Roomba Wi-Fi settings (connect to Roomba's network first)")
     {
@@ -87,13 +87,16 @@ public class ConfigureWifiCommand : Command
 
         Console.WriteLine();
 
-        var success = await _wifiClient.ConfigureWifiAsync(
-            ssid,
-            password,
-            robotName,
-            timezone,
-            country,
-            _cancellationToken);
+        var request = new WifiConfigurationRequest
+        {
+            Ssid = ssid,
+            Password = password,
+            RobotName = robotName,
+            Timezone = timezone,
+            Country = country
+        };
+
+        var success = await _wifiClient.ConfigureWifiAsync(request, _cancellationToken);
 
         if (success)
         {

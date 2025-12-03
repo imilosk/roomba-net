@@ -5,11 +5,11 @@ namespace RoombaNet.Cli.Commands;
 
 public class DiscoverCommand : Command
 {
-    private readonly IRoombaSettingsClient _roombaSettingsClient;
+    private readonly IRoombaSettingsService _roombaSettingsClient;
     private readonly CancellationToken _cancellationToken;
 
     public DiscoverCommand(
-        IRoombaSettingsClient roombaSettingsClient,
+        IRoombaSettingsService roombaSettingsClient,
         CancellationToken cancellationToken = default
     ) : base("discover", "Discover Roombas on the local network")
     {

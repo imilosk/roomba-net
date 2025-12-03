@@ -1,6 +1,6 @@
 namespace RoombaNet.Core;
 
-public interface IRoombaCommandClient
+public interface IRoombaCommandService
 {
     Task Find(CancellationToken cancellationToken = default);
     Task Start(CancellationToken cancellationToken = default);

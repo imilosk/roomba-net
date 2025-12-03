@@ -6,16 +6,16 @@ namespace RoombaNet.Cli.Commands;
 
 public class CliCommandBuilder
 {
-    private readonly IRoombaSubscriber _roombaSubscriber;
-    private readonly IRoombaCommandClient _roombaCommandClient;
-    private readonly IRoombaSettingsClient _roombaSettingsClient;
-    private readonly IRoombaWifiClient _roombaWifiClient;
+    private readonly IRoombaSubscriptionService _roombaSubscriber;
+    private readonly IRoombaCommandService _roombaCommandClient;
+    private readonly IRoombaSettingsService _roombaSettingsClient;
+    private readonly IRoombaWifiService _roombaWifiClient;
 
     public CliCommandBuilder(
-        IRoombaSubscriber roombaSubscriber,
-        IRoombaCommandClient roombaCommandClient,
-        IRoombaSettingsClient roombaSettingsClient,
-        IRoombaWifiClient roombaWifiClient
+        IRoombaSubscriptionService roombaSubscriber,
+        IRoombaCommandService roombaCommandClient,
+        IRoombaSettingsService roombaSettingsClient,
+        IRoombaWifiService roombaWifiClient
     )
     {
         _roombaSubscriber = roombaSubscriber;

@@ -3,7 +3,7 @@ using RoombaNet.Transport.Tls;
 
 namespace RoombaNet.Core;
 
-public interface IRoombaSettingsClient
+public interface IRoombaSettingsService
 {
     Task SetChildLock(bool enable, CancellationToken cancellationToken = default);
     Task SetBinPause(bool enable, CancellationToken cancellationToken = default);
