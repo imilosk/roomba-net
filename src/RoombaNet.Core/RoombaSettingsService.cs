@@ -128,6 +128,7 @@ public class RoombaSettingsService : IRoombaSettingsService
         }
 
         throw new NotSupportedException(
-            $"Type {typeof(T).Name} is not supported for settings serialization. Add it to RoombaJsonContext.");
+            $"Type {typeof(T).Name} is not supported for settings serialization. Add it to RoombaJsonContext."
+        );
     }
 }

@@ -18,7 +18,8 @@ public class RoombaWifiService : IRoombaWifiService
         ILogger<RoombaWifiService> logger,
         MqttClientFactory mqttClientFactory,
         RoombaSettings roombaSettings,
-        WifiConfigCommandBuilder commandBuilder)
+        WifiConfigCommandBuilder commandBuilder
+    )
     {
         _logger = logger;
         _mqttClientFactory = mqttClientFactory;
@@ -28,7 +29,8 @@ public class RoombaWifiService : IRoombaWifiService
 
     public async Task<bool> ConfigureWifiAsync(
         WifiConfigurationRequest request,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         IMqttClient? client = null;
         try
@@ -84,7 +86,8 @@ public class RoombaWifiService : IRoombaWifiService
     private async Task ExecuteConfigurationCommands(
         IMqttClient client,
         WifiConfigurationRequest request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         var commands = _commandBuilder.BuildCommandSequence(request);
 

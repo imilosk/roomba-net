@@ -10,16 +10,19 @@ public class RoombaPasswordClient : IRoombaPasswordClient
 {
     private readonly ILogger<RoombaPasswordClient> _logger;
     private const int SliceFrom = 9;
+    private const string HexPacket = "f005efcc3b2900";
+    private static readonly byte[] PacketBytes = Convert.FromHexString(HexPacket);
 
-    public RoombaPasswordClient(
-        ILogger<RoombaPasswordClient> logger
-    )
+    public RoombaPasswordClient(ILogger<RoombaPasswordClient> logger)
     {
         _logger = logger;
     }
 
-    public async Task<string> GetPassword(string ipAddress, int port = 8883,
-        CancellationToken cancellationToken = default)
+    public async Task<string> GetPassword(
+        string ipAddress,
+        int port = 8883,
+        CancellationToken cancellationToken = default
+    )
     {
         var (sslStream, tcpClient) = await ConnectAsync(ipAddress, port, cancellationToken);
         await SendDiscoveryPacketAsync(sslStream, cancellationToken);
@@ -31,8 +34,11 @@ public class RoombaPasswordClient : IRoombaPasswordClient
         return password;
     }
 
-    private async Task<(SslStream sslStream, TcpClient tcpClient)> ConnectAsync(string ip, int port,
-        CancellationToken cancellationToken)
+    private async Task<(SslStream sslStream, TcpClient tcpClient)> ConnectAsync(
+        string ip,
+        int port,
+        CancellationToken cancellationToken
+    )
     {
         _logger.LogInformation("Connecting to Roomba at {Ip}:{Port}...", ip, port);
 
@@ -80,12 +86,9 @@ public class RoombaPasswordClient : IRoombaPasswordClient
         if (sslStream is null)
             throw new InvalidOperationException("Not connected");
 
-        const string hexPacket = "f005efcc3b2900";
-        var packetBytes = Convert.FromHexString(hexPacket);
+        _logger.LogDebug("Sending discovery packet: {Packet}", HexPacket);
 
-        _logger.LogDebug("Sending discovery packet: {Packet}", hexPacket);
-
-        await sslStream.WriteAsync(packetBytes, cancellationToken);
+        await sslStream.WriteAsync(PacketBytes, cancellationToken);
         await sslStream.FlushAsync(cancellationToken);
     }
 
@@ -149,7 +152,8 @@ public class RoombaPasswordClient : IRoombaPasswordClient
                 throw new InvalidOperationException(
                     "Roomba did not send password. Make sure Roomba is on the dock, " +
                     "hold HOME button for 2 seconds until you hear beeps, " +
-                    "then run this command immediately.");
+                    "then run this command immediately."
+                );
         }
 
         var passwordBytes = data.Skip(SliceFrom).ToArray();

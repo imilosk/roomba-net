@@ -51,4 +51,4 @@ public class RoombaInfo
 }
 
 [JsonSerializable(typeof(RoombaInfo))]
-internal partial class RoombaInfoJsonContext : JsonSerializerContext { }
+internal partial class RoombaInfoJsonContext : JsonSerializerContext;

@@ -18,17 +18,17 @@ public sealed class WifiConfigurationRequest
     /// <summary>
     /// Optional name for the robot
     /// </summary>
-    public string? RobotName { get; init; }
+    public string RobotName { get; init; } = string.Empty;
 
     /// <summary>
     /// Optional IANA timezone (e.g., America/New_York)
     /// </summary>
-    public string? Timezone { get; init; }
+    public string Timezone { get; init; } = string.Empty;
 
     /// <summary>
     /// Optional country code (e.g., US, GB)
     /// </summary>
-    public string? Country { get; init; }
+    public string Country { get; init; } = string.Empty;
 
     /// <summary>
     /// Firmware version for encoding (defaults to v3+)

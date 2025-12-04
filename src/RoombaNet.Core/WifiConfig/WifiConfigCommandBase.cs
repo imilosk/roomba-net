@@ -19,7 +19,8 @@ public abstract class WifiConfigCommandBase<TState> : IWifiConfigCommand where T
         IMqttPublisher mqttPublisher,
         string topic,
         string description,
-        JsonTypeInfo<WifiConfigMessage<TState>> jsonTypeInfo)
+        JsonTypeInfo<WifiConfigMessage<TState>> jsonTypeInfo
+    )
     {
         _logger = logger;
         _mqttPublisher = mqttPublisher;
@@ -41,7 +42,7 @@ public abstract class WifiConfigCommandBase<TState> : IWifiConfigCommand where T
         var state = CreateState();
         var message = new WifiConfigMessage<TState>
         {
-            State = state
+            State = state,
         };
 
         await _mqttPublisher.PublishAsync(client, Topic, message, _jsonTypeInfo, cancellationToken);

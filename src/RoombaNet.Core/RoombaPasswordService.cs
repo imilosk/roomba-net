@@ -17,8 +17,11 @@ public class RoombaPasswordService : IRoombaPasswordService
         _passwordClient = passwordClient;
     }
 
-    public async Task<string> GetPassword(string ipAddress, int port = 8883,
-        CancellationToken cancellationToken = default)
+    public async Task<string> GetPassword(
+        string ipAddress,
+        int port = 8883,
+        CancellationToken cancellationToken = default
+    )
     {
         _logger.LogInformation("Retrieving password from Roomba at {IpAddress}:{Port}", ipAddress, port);
 
@@ -30,8 +33,11 @@ public class RoombaPasswordService : IRoombaPasswordService
         }
         else
         {
-            _logger.LogInformation("Successfully retrieved password from Roomba at {IpAddress}:{Port}", ipAddress,
-                port);
+            _logger.LogInformation(
+                "Successfully retrieved password from Roomba at {IpAddress}:{Port}",
+                ipAddress,
+                port
+            );
         }
 
         return password;

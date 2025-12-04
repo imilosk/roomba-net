@@ -6,7 +6,7 @@ namespace RoombaNet.Api.Services;
 
 public class RoombaApiService
 {
-    private readonly IRoombaCommandService _commandClient;
+    private readonly IRoombaCommandService _commandService;
     private readonly IRoombaSettingsService _settingsClient;
     private readonly ILogger<RoombaApiService> _logger;
     private readonly TimeProvider _timeProvider;
@@ -22,7 +22,7 @@ public class RoombaApiService
         ILogger<RoombaApiService> logger,
         TimeProvider timeProvider)
     {
-        _commandClient = commandClient;
+        _commandService = commandClient;
         _settingsClient = settingsClient;
         _logger = logger;
         _timeProvider = timeProvider;
@@ -211,31 +211,31 @@ public class RoombaApiService
         switch (command.ToLowerInvariant())
         {
             case "find":
-                await _commandClient.Find(cancellationToken);
+                await _commandService.Find(cancellationToken);
                 break;
             case "start":
-                await _commandClient.Start(cancellationToken);
+                await _commandService.Start(cancellationToken);
                 break;
             case "stop":
-                await _commandClient.Stop(cancellationToken);
+                await _commandService.Stop(cancellationToken);
                 break;
             case "pause":
-                await _commandClient.Pause(cancellationToken);
+                await _commandService.Pause(cancellationToken);
                 break;
             case "resume":
-                await _commandClient.Resume(cancellationToken);
+                await _commandService.Resume(cancellationToken);
                 break;
             case "dock":
-                await _commandClient.Dock(cancellationToken);
+                await _commandService.Dock(cancellationToken);
                 break;
             case "evac":
-                await _commandClient.Evac(cancellationToken);
+                await _commandService.Evac(cancellationToken);
                 break;
             case "reset":
-                await _commandClient.Reset(cancellationToken);
+                await _commandService.Reset(cancellationToken);
                 break;
             case "train":
-                await _commandClient.Train(cancellationToken);
+                await _commandService.Train(cancellationToken);
                 break;
             default:
                 throw new ArgumentException($"Unknown command: {command}");

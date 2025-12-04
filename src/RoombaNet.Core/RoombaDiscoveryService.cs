@@ -17,8 +17,10 @@ public class RoombaDiscoveryService : IRoombaDiscoveryService
         _discoveryClient = discoveryClient;
     }
 
-    public async Task<List<RoombaInfo>> DiscoverRoombas(int timeoutSeconds = 5,
-        CancellationToken cancellationToken = default)
+    public async Task<List<RoombaInfo>> DiscoverRoombas(
+        int timeoutSeconds = 5,
+        CancellationToken cancellationToken = default
+    )
     {
         _logger.LogInformation("Starting Roomba discovery with {Timeout}s timeout", timeoutSeconds);
 

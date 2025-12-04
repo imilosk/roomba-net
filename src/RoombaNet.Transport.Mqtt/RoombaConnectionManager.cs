@@ -25,7 +25,7 @@ public class RoombaConnectionManager : IRoombaConnectionManager
         _logger = logger;
         _mqttClientFactory = mqttClientFactory;
         _roombaSettings = settings;
-        
+
         _mqttClient = mqttClientFactory.CreateMqttClient();
         _mqttClientOptions = CreateMqttClientChannelOptions(settings);
     }
@@ -93,27 +93,29 @@ public class RoombaConnectionManager : IRoombaConnectionManager
             .Build();
     }
 
-    public void Dispose()
+    private bool _disposed;
+
+    protected virtual void Dispose(bool disposing)
     {
-        if (_mqttClient.IsConnected)
+        if (_disposed) return;
+        if (disposing)
         {
             _mqttClient.Dispose();
         }
 
+        _disposed = true;
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
         GC.SuppressFinalize(this);
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_mqttClient is IAsyncDisposable mqttClientAsyncDisposable)
-        {
-            await mqttClientAsyncDisposable.DisposeAsync();
-        }
-        else
-        {
-            _mqttClient.Dispose();
-        }
-
+        Dispose(true);
         GC.SuppressFinalize(this);
+        await ValueTask.CompletedTask;
     }
 }

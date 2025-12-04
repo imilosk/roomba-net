@@ -97,7 +97,7 @@ public sealed class SetRobotNameCommand : WifiConfigCommandBase<NameState>
 
     protected override NameState CreateState() => new()
     {
-        Name = _name
+        Name = _name,
     };
 }
 

@@ -78,7 +78,7 @@ public class WifiConfigCommandBuilder
     {
         var credentials = new WifiCredentials
         {
-            Sec = 7, // WPA2-PSK
+            Sec = 7, // WPA/WPA2
         };
 
         if (request.FirmwareVersion == 2)
