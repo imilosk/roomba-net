@@ -91,9 +91,9 @@ public class ConfigureWifiCommand : Command
         {
             Ssid = ssid,
             Password = password,
-            RobotName = robotName,
-            Timezone = timezone,
-            Country = country
+            RobotName = robotName ?? string.Empty,
+            Timezone = timezone ?? string.Empty,
+            Country = country ?? string.Empty
         };
 
         var success = await _wifiClient.ConfigureWifiAsync(request, _cancellationToken);

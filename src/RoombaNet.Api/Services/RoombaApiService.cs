@@ -8,6 +8,7 @@ public class RoombaApiService
 {
     private readonly IRoombaCommandService _commandService;
     private readonly IRoombaSettingsService _settingsClient;
+    private readonly IRoombaDiscoveryService _discoveryService;
     private readonly ILogger<RoombaApiService> _logger;
     private readonly TimeProvider _timeProvider;
 
@@ -19,11 +20,13 @@ public class RoombaApiService
     public RoombaApiService(
         IRoombaCommandService commandClient,
         IRoombaSettingsService settingsClient,
+        IRoombaDiscoveryService discoveryService,
         ILogger<RoombaApiService> logger,
         TimeProvider timeProvider)
     {
         _commandService = commandClient;
         _settingsClient = settingsClient;
+        _discoveryService = discoveryService;
         _logger = logger;
         _timeProvider = timeProvider;
     }
@@ -392,6 +395,50 @@ public class RoombaApiService
                 Error: ex.GetType().Name,
                 Details: ex.Message
             );
+        }
+    }
+
+    public async Task<DiscoveryResponse> DiscoverRoombas(
+        int timeoutSeconds = 5,
+        CancellationToken cancellationToken = default
+    )
+    {
+        try
+        {
+            _logger.LogInformation("Starting Roomba discovery with timeout: {Timeout}s", timeoutSeconds);
+
+            var roombas = await _discoveryService.DiscoverRoombas(timeoutSeconds, cancellationToken);
+
+            var discoveredRoombas = roombas.Select(r => new DiscoveredRoomba
+                {
+                    Blid = r.Blid,
+                    RobotName = r.RobotName,
+                    Ip = r.Ip,
+                    Mac = r.Mac,
+                    Hostname = r.Hostname,
+                    SoftwareVersion = r.SoftwareVersion,
+                    Sku = r.Sku
+                })
+                .ToList();
+
+            _logger.LogInformation("Discovery completed. Found {Count} Roomba(s)", discoveredRoombas.Count);
+
+            return new DiscoveryResponse
+            {
+                Success = true,
+                Roombas = discoveredRoombas
+            };
+        }
+        catch (Exception ex)
+        {
+            var errorMessage = "Failed to discover Roombas";
+            _logger.LogError(ex, errorMessage);
+
+            return new DiscoveryResponse
+            {
+                Success = false,
+                Error = $"{ex.GetType().Name}: {ex.Message}"
+            };
         }
     }
 }

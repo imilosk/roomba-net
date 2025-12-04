@@ -17,9 +17,13 @@ public static class RoombaEndpoints
         var statusGroup = app.MapGroup("/api/roomba/status")
             .WithTags("Roomba Status");
 
+        var discoveryGroup = app.MapGroup("/api/roomba/discovery")
+            .WithTags("Roomba Discovery");
+
         MapCommandEndpoints(commandsGroup);
         MapSettingsEndpoints(settingsGroup);
         MapStatusEndpoints(statusGroup);
+        MapDiscoveryEndpoints(discoveryGroup);
     }
 
     private static void MapCommandEndpoints(RouteGroupBuilder group)
@@ -309,5 +313,29 @@ public static class RoombaEndpoints
             .WithDescription(
                 "Server-Sent Events (SSE) endpoint that streams real-time status updates from the Roomba MQTT connection")
             .ExcludeFromDescription(); // SSE endpoints don't work well in OpenAPI docs
+    }
+
+    private static void MapDiscoveryEndpoints(RouteGroupBuilder group)
+    {
+        group.MapGet("/", async (
+                [FromQuery] int? timeout,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var timeoutSeconds = timeout ?? 5;
+                var result = await roombaService.DiscoverRoombas(timeoutSeconds, cancellationToken);
+
+                return result.Success
+                    ? Results.Ok(result)
+                    : Results.Problem(
+                        statusCode: StatusCodes.Status500InternalServerError,
+                        detail: result.Error);
+            })
+            .WithName("DiscoverRoombas")
+            .WithSummary("Discover Roomba robots on the network")
+            .WithDescription(
+                "Scans the local network for available Roomba robots using UDP broadcast. Returns a list of discovered robots with their network information.")
+            .Produces<DiscoveryResponse>()
+            .Produces(StatusCodes.Status500InternalServerError);
     }
 }
