@@ -157,6 +157,7 @@ public class RoombaStatusService : BackgroundService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Roomba Status Service encountered an error and will stop.");
+            throw;
         }
         finally
         {
