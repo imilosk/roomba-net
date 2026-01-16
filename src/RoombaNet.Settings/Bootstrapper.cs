@@ -12,14 +12,26 @@ public static class Bootstrapper
     /// </summary>
     public static IServiceCollection AddRoombaSettings(this IServiceCollection services, IConfiguration configuration)
     {
+        return AddRoombaSettings(services, configuration, requireSettings: true);
+    }
+
+    public static IServiceCollection AddRoombaSettings(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        bool requireSettings)
+    {
         var configurationSection = configuration.GetSection(nameof(RoombaSettings));
         var roombaSettings = configurationSection.Get<RoombaSettings>();
 
         services.Configure<RoombaSettings>(configurationSection);
-        services.AddSingleton(
-            roombaSettings ??
-            throw new InvalidOperationException($"{nameof(RoombaSettings)} configuration is missing or invalid.")
-        );
+        if (roombaSettings is not null)
+        {
+            services.AddSingleton(roombaSettings);
+        }
+        else if (requireSettings)
+        {
+            throw new InvalidOperationException($"{nameof(RoombaSettings)} configuration is missing or invalid.");
+        }
 
         return services;
     }

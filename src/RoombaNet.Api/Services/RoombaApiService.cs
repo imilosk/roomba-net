@@ -1,4 +1,5 @@
 using RoombaNet.Api.Models;
+using RoombaNet.Api.Services.RoombaClients;
 using RoombaNet.Core;
 using RoombaNet.Core.Constants;
 
@@ -6,9 +7,8 @@ namespace RoombaNet.Api.Services;
 
 public class RoombaApiService
 {
-    private readonly IRoombaCommandService _commandService;
-    private readonly IRoombaSettingsService _settingsClient;
     private readonly IRoombaDiscoveryService _discoveryService;
+    private readonly IRoombaClientFactory _clientFactory;
     private readonly ILogger<RoombaApiService> _logger;
     private readonly TimeProvider _timeProvider;
 
@@ -18,14 +18,12 @@ public class RoombaApiService
     ];
 
     public RoombaApiService(
-        IRoombaCommandService commandClient,
-        IRoombaSettingsService settingsClient,
+        IRoombaClientFactory clientFactory,
         IRoombaDiscoveryService discoveryService,
         ILogger<RoombaApiService> logger,
         TimeProvider timeProvider)
     {
-        _commandService = commandClient;
-        _settingsClient = settingsClient;
+        _clientFactory = clientFactory;
         _discoveryService = discoveryService;
         _logger = logger;
         _timeProvider = timeProvider;
@@ -33,6 +31,7 @@ public class RoombaApiService
 
     public async Task<CommandResponse> ExecuteCommandAsync(
         string command,
+        string robotId,
         CancellationToken cancellationToken = default
     )
     {
@@ -63,7 +62,8 @@ public class RoombaApiService
                 );
             }
 
-            await ExecuteRoombaCommand(command, cancellationToken);
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await ExecuteRoombaCommand(client.Commands, command, cancellationToken);
 
             var successMessage = $"Command '{command}' executed successfully";
             _logger.LogInformation(successMessage);
@@ -95,6 +95,7 @@ public class RoombaApiService
 
     public async Task<BatchCommandResponse> ExecuteBatchCommandsAsync(
         BatchCommandRequest request,
+        string robotId,
         CancellationToken cancellationToken = default
     )
     {
@@ -102,26 +103,38 @@ public class RoombaApiService
         var timestamp = _timeProvider.GetUtcNow().DateTime;
         var results = new List<BatchCommandResult>();
 
-        _logger.LogInformation("Executing batch commands with execution ID '{ExecutionId}'. Sequential: {Sequential}",
-            executionId, request.Sequential);
+        _logger.LogInformation(
+            "Executing batch commands with execution ID '{ExecutionId}'. Sequential: {Sequential}",
+            executionId,
+            request.Sequential);
 
-        if (request.Sequential)
+        try
         {
-            foreach (var command in request.Commands)
-            {
-                var result = await ExecuteSingleBatchCommand(command, cancellationToken);
-                results.Add(result);
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
 
-                // If a command fails and we're running sequentially, we might want to continue or stop
-                // For now, we'll continue with all commands
+            if (request.Sequential)
+            {
+                foreach (var command in request.Commands)
+                {
+                    var result = await ExecuteSingleBatchCommand(client.Commands, command, cancellationToken);
+                    results.Add(result);
+                }
+            }
+            else
+            {
+                var tasks = request.Commands
+                    .Select(command => ExecuteSingleBatchCommand(client.Commands, command, cancellationToken));
+                var batchResults = await Task.WhenAll(tasks);
+                results.AddRange(batchResults);
             }
         }
-        else
+        catch (Exception ex)
         {
-            var tasks = request.Commands
-                .Select(command => ExecuteSingleBatchCommand(command, cancellationToken));
-            var batchResults = await Task.WhenAll(tasks);
-            results.AddRange(batchResults);
+            results.Add(new BatchCommandResult(
+                Command: "batch",
+                Success: false,
+                Message: "Failed to execute batch commands",
+                Error: ex.Message));
         }
 
         var overallSuccess = results.All(r => r.Success);
@@ -174,6 +187,7 @@ public class RoombaApiService
     }
 
     private async Task<BatchCommandResult> ExecuteSingleBatchCommand(
+        IRoombaCommandService commandService,
         string command,
         CancellationToken cancellationToken
     )
@@ -190,7 +204,7 @@ public class RoombaApiService
                 );
             }
 
-            await ExecuteRoombaCommand(command, cancellationToken);
+            await ExecuteRoombaCommand(commandService, command, cancellationToken);
 
             return new BatchCommandResult(
                 Command: command,
@@ -209,36 +223,39 @@ public class RoombaApiService
         }
     }
 
-    private async Task ExecuteRoombaCommand(string command, CancellationToken cancellationToken)
+    private static async Task ExecuteRoombaCommand(
+        IRoombaCommandService commandService,
+        string command,
+        CancellationToken cancellationToken)
     {
         switch (command.ToLowerInvariant())
         {
             case "find":
-                await _commandService.Find(cancellationToken);
+                await commandService.Find(cancellationToken);
                 break;
             case "start":
-                await _commandService.Start(cancellationToken);
+                await commandService.Start(cancellationToken);
                 break;
             case "stop":
-                await _commandService.Stop(cancellationToken);
+                await commandService.Stop(cancellationToken);
                 break;
             case "pause":
-                await _commandService.Pause(cancellationToken);
+                await commandService.Pause(cancellationToken);
                 break;
             case "resume":
-                await _commandService.Resume(cancellationToken);
+                await commandService.Resume(cancellationToken);
                 break;
             case "dock":
-                await _commandService.Dock(cancellationToken);
+                await commandService.Dock(cancellationToken);
                 break;
             case "evac":
-                await _commandService.Evac(cancellationToken);
+                await commandService.Evac(cancellationToken);
                 break;
             case "reset":
-                await _commandService.Reset(cancellationToken);
+                await commandService.Reset(cancellationToken);
                 break;
             case "train":
-                await _commandService.Train(cancellationToken);
+                await commandService.Train(cancellationToken);
                 break;
             default:
                 throw new ArgumentException($"Unknown command: {command}");
@@ -250,7 +267,10 @@ public class RoombaApiService
         return AvailableCommands.Contains(command.ToLowerInvariant());
     }
 
-    public async Task<SettingsResponse> SetChildLockAsync(bool enable, CancellationToken cancellationToken = default)
+    public async Task<SettingsResponse> SetChildLockAsync(
+        bool enable,
+        string robotId,
+        CancellationToken cancellationToken = default)
     {
         var executionId = Guid.NewGuid().ToString();
         var timestamp = _timeProvider.GetUtcNow().DateTime;
@@ -263,7 +283,8 @@ public class RoombaApiService
                 executionId
             );
 
-            await _settingsClient.SetChildLock(enable, cancellationToken);
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.SettingsService.SetChildLock(enable, cancellationToken);
 
             var successMessage = $"Child lock {(enable ? "enabled" : "disabled")} successfully";
             _logger.LogInformation(successMessage);
@@ -293,7 +314,10 @@ public class RoombaApiService
         }
     }
 
-    public async Task<SettingsResponse> SetBinPauseAsync(bool enable, CancellationToken cancellationToken = default)
+    public async Task<SettingsResponse> SetBinPauseAsync(
+        bool enable,
+        string robotId,
+        CancellationToken cancellationToken = default)
     {
         var executionId = Guid.NewGuid().ToString();
         var timestamp = _timeProvider.GetUtcNow().DateTime;
@@ -306,7 +330,8 @@ public class RoombaApiService
                 executionId
             );
 
-            await _settingsClient.SetBinPause(enable, cancellationToken);
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.SettingsService.SetBinPause(enable, cancellationToken);
 
             var successMessage = $"Bin pause {(enable ? "enabled" : "disabled")} successfully";
             _logger.LogInformation(successMessage);
@@ -336,7 +361,9 @@ public class RoombaApiService
         }
     }
 
-    public async Task<SettingsResponse> SetCleaningPassesAsync(int passes,
+    public async Task<SettingsResponse> SetCleaningPassesAsync(
+        int passes,
+        string robotId,
         CancellationToken cancellationToken = default)
     {
         var executionId = Guid.NewGuid().ToString();
@@ -368,7 +395,8 @@ public class RoombaApiService
             }
 
             var cleaningPasses = (RoombaCleaningPasses)passes;
-            await _settingsClient.CleaningPasses(cleaningPasses, cancellationToken);
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.SettingsService.CleaningPasses(cleaningPasses, cancellationToken);
 
             var successMessage = $"Cleaning passes set to {cleaningPasses} successfully";
             _logger.LogInformation(successMessage);

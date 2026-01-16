@@ -229,10 +229,8 @@ docker build -t roombanet-api .
 docker run -d \
   --name roombanet \
   -p 8080:8080 \
-  -e RoombaSettings__Ip=192.168.1.100 \
-  -e RoombaSettings__Port=8883 \
-  -e RoombaSettings__Blid=your_roomba_blid \
-  -e RoombaSettings__Password=your_roomba_password \
+  -e RobotRegistry__DatabasePath=/data/roombanet.db \
+  -e RobotRegistry__EncryptionKey=base64_32_byte_key \
   roombanet-api
 
 # View logs
@@ -242,19 +240,35 @@ docker logs -f roombanet
 docker stop roombanet
 ```
 
+Notes:
+- `RobotRegistry__DatabasePath` is optional; defaults to `roombanet.db` in the app directory.
+- `RobotRegistry__EncryptionKey` is optional but recommended; use a base64-encoded 32-byte key to encrypt stored passwords.
+
+#### Robot Registry (Multi-Robot)
+```bash
+# Discover robots and save them to the registry
+curl "http://localhost:8080/api/roomba/discovery?save=true"
+
+# List registered robots
+curl http://localhost:8080/api/roomba/robots
+
+# Pair a robot to store its password (put robot in pairing mode first)
+curl -X POST http://localhost:8080/api/roomba/robots/{blid}/pair
+```
+
 #### Single Commands
 ```bash
 # Start cleaning
-curl -X POST http://localhost:8080/api/roomba/commands/start
+curl -X POST "http://localhost:8080/api/roomba/commands/start?robotId={blid}"
 
 # Find Roomba (make it beep)
-curl -X POST http://localhost:8080/api/roomba/commands/find
+curl -X POST "http://localhost:8080/api/roomba/commands/find?robotId={blid}"
 
 # Return to dock
-curl -X POST http://localhost:8080/api/roomba/commands/dock
+curl -X POST "http://localhost:8080/api/roomba/commands/dock?robotId={blid}"
 
 # Evacuate bin (Clean Base models only)
-curl -X POST http://localhost:8080/api/roomba/evac
+curl -X POST "http://localhost:8080/api/roomba/evac?robotId={blid}"
 
 # Get available commands
 curl http://localhost:8080/api/roomba/commands
@@ -263,43 +277,44 @@ curl http://localhost:8080/api/roomba/commands
 #### Batch Commands
 ```bash
 # Execute multiple commands sequentially
-curl -X POST http://localhost:8080/api/roomba/commands/batch \
+curl -X POST "http://localhost:8080/api/roomba/commands/batch?robotId={blid}" \
   -H "Content-Type: application/json" \
   -d '{
     "commands": ["start", "pause", "resume"],
-    "executeInParallel": false
+    "sequential": true
   }'
 
 # Execute commands in parallel
-curl -X POST http://localhost:8080/api/roomba/commands/batch \
+curl -X POST "http://localhost:8080/api/roomba/commands/batch?robotId={blid}" \
   -H "Content-Type: application/json" \
   -d '{
     "commands": ["find", "start"],
-    "executeInParallel": true
+    "sequential": false
   }'
 ```
 
 #### Settings Management
 ```bash
-# Get current settings
-curl http://localhost:8080/api/roomba/settings
-
-# Update settings
-curl -X PUT http://localhost:8080/api/roomba/settings \
+# Enable child lock
+curl -X POST "http://localhost:8080/api/roomba/settings/child-lock?robotId={blid}" \
   -H "Content-Type: application/json" \
-  -d '{
-    "twoPass": true,
-    "carpetBoost": true,
-    "vacHigh": false,
-    "noAutoPasses": false,
-    "openOnly": false
-  }'
+  -d '{"enable": true}'
+
+# Enable bin pause
+curl -X POST "http://localhost:8080/api/roomba/settings/bin-pause?robotId={blid}" \
+  -H "Content-Type: application/json" \
+  -d '{"enable": true}'
+
+# Set cleaning passes (1, 2, or 3)
+curl -X POST "http://localhost:8080/api/roomba/settings/cleaning-passes?robotId={blid}" \
+  -H "Content-Type: application/json" \
+  -d '{"passes": 2}'
 ```
 
 #### Real-time Status Streaming
 ```bash
 # Stream live status updates (Server-Sent Events)
-curl http://localhost:8080/api/roomba/status/stream
+curl "http://localhost:8080/api/roomba/status/stream?robotId={blid}"
 
 # Get health check
 curl http://localhost:8080/api/roomba/health
@@ -316,6 +331,7 @@ curl http://localhost:8080/api/roomba/health
 - [x] Batch command execution
 - [x] Settings management
 - [x] Docker container support
+- [x] Multi-robot support
 
 ### In Progress 🚧
 - [ ] Web UI for browser-based control (https://github.com/imilosk/roomba-net-ui)
@@ -328,7 +344,6 @@ curl http://localhost:8080/api/roomba/health
 - [ ] Keep-out zone management
 - [ ] Cleaning history and analytics
 - [ ] Schedule management UI
-- [ ] Multi-robot support
 
 ## 🤝 Contributing
 

@@ -1,6 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using RoombaNet.Api.Models;
+using RoombaNet.Api.Services.RoombaClients;
+using RoombaNet.Api.Services.RoombaStatus;
+using RoombaNet.Api.Services.RobotRegistry;
 using RoombaNet.Api.Services;
+using RoombaNet.Core;
 
 namespace RoombaNet.Api.Endpoints;
 
@@ -20,20 +24,25 @@ public static class RoombaEndpoints
         var discoveryGroup = app.MapGroup("/api/roomba/discovery")
             .WithTags("Roomba Discovery");
 
+        var robotsGroup = app.MapGroup("/api/roomba/robots")
+            .WithTags("Roomba Robots");
+
         MapCommandEndpoints(commandsGroup);
         MapSettingsEndpoints(settingsGroup);
         MapStatusEndpoints(statusGroup);
         MapDiscoveryEndpoints(discoveryGroup);
+        MapRobotRegistryEndpoints(robotsGroup);
     }
 
     private static void MapCommandEndpoints(RouteGroupBuilder group)
     {
         group.MapPost("/commands/{command}", async (
                 string command,
+                [FromQuery] string robotId,
                 RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
-                var result = await roombaService.ExecuteCommandAsync(command, cancellationToken);
+                var result = await roombaService.ExecuteCommandAsync(command, robotId, cancellationToken);
 
                 return result.Success
                     ? Results.Ok(result)
@@ -49,10 +58,11 @@ public static class RoombaEndpoints
 
         group.MapPost("/commands/batch", async (
                 [FromBody] BatchCommandRequest request,
+                [FromQuery] string robotId,
                 RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
-                var result = await roombaService.ExecuteBatchCommandsAsync(request, cancellationToken);
+                var result = await roombaService.ExecuteBatchCommandsAsync(request, robotId, cancellationToken);
 
                 return result.Success
                     ? Results.Ok(result)
@@ -94,10 +104,11 @@ public static class RoombaEndpoints
             .Produces(StatusCodes.Status503ServiceUnavailable);
 
         group.MapPost("/start", async (
+                [FromQuery] string robotId,
                 RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
-                var result = await roombaService.ExecuteCommandAsync("start", cancellationToken);
+                var result = await roombaService.ExecuteCommandAsync("start", robotId, cancellationToken);
                 return result.Success ? Results.Ok(result) : Results.BadRequest(result);
             })
             .WithName("StartCleaning")
@@ -107,10 +118,11 @@ public static class RoombaEndpoints
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
 
         group.MapPost("/stop", async (
+                [FromQuery] string robotId,
                 RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
-                var result = await roombaService.ExecuteCommandAsync("stop", cancellationToken);
+                var result = await roombaService.ExecuteCommandAsync("stop", robotId, cancellationToken);
                 return result.Success ? Results.Ok(result) : Results.BadRequest(result);
             })
             .WithName("StopCleaning")
@@ -120,10 +132,11 @@ public static class RoombaEndpoints
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
 
         group.MapPost("/pause", async (
+                [FromQuery] string robotId,
                 RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
-                var result = await roombaService.ExecuteCommandAsync("pause", cancellationToken);
+                var result = await roombaService.ExecuteCommandAsync("pause", robotId, cancellationToken);
                 return result.Success ? Results.Ok(result) : Results.BadRequest(result);
             })
             .WithName("PauseCleaning")
@@ -133,10 +146,11 @@ public static class RoombaEndpoints
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
 
         group.MapPost("/resume", async (
+                [FromQuery] string robotId,
                 RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
-                var result = await roombaService.ExecuteCommandAsync("resume", cancellationToken);
+                var result = await roombaService.ExecuteCommandAsync("resume", robotId, cancellationToken);
                 return result.Success ? Results.Ok(result) : Results.BadRequest(result);
             })
             .WithName("ResumeCleaning")
@@ -146,10 +160,11 @@ public static class RoombaEndpoints
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
 
         group.MapPost("/dock", async (
+                [FromQuery] string robotId,
                 RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
-                var result = await roombaService.ExecuteCommandAsync("dock", cancellationToken);
+                var result = await roombaService.ExecuteCommandAsync("dock", robotId, cancellationToken);
                 return result.Success ? Results.Ok(result) : Results.BadRequest(result);
             })
             .WithName("DockRoomba")
@@ -159,10 +174,11 @@ public static class RoombaEndpoints
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
 
         group.MapPost("/find", async (
+                [FromQuery] string robotId,
                 RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
-                var result = await roombaService.ExecuteCommandAsync("find", cancellationToken);
+                var result = await roombaService.ExecuteCommandAsync("find", robotId, cancellationToken);
                 return result.Success ? Results.Ok(result) : Results.BadRequest(result);
             })
             .WithName("FindRoomba")
@@ -172,10 +188,11 @@ public static class RoombaEndpoints
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
 
         group.MapPost("/evac", async (
+                [FromQuery] string robotId,
                 RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
-                var result = await roombaService.ExecuteCommandAsync("evac", cancellationToken);
+                var result = await roombaService.ExecuteCommandAsync("evac", robotId, cancellationToken);
                 return result.Success ? Results.Ok(result) : Results.BadRequest(result);
             })
             .WithName("EvacuateBin")
@@ -185,10 +202,11 @@ public static class RoombaEndpoints
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
 
         group.MapPost("/reset", async (
+                [FromQuery] string robotId,
                 RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
-                var result = await roombaService.ExecuteCommandAsync("reset", cancellationToken);
+                var result = await roombaService.ExecuteCommandAsync("reset", robotId, cancellationToken);
                 return result.Success ? Results.Ok(result) : Results.BadRequest(result);
             })
             .WithName("ResetRoomba")
@@ -198,10 +216,11 @@ public static class RoombaEndpoints
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
 
         group.MapPost("/train", async (
+                [FromQuery] string robotId,
                 RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
-                var result = await roombaService.ExecuteCommandAsync("train", cancellationToken);
+                var result = await roombaService.ExecuteCommandAsync("train", robotId, cancellationToken);
                 return result.Success ? Results.Ok(result) : Results.BadRequest(result);
             })
             .WithName("TrainRoomba")
@@ -215,10 +234,11 @@ public static class RoombaEndpoints
     {
         group.MapPost("/child-lock", async (
                 [FromBody] EnableSettingRequest request,
+                [FromQuery] string robotId,
                 RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
-                var result = await roombaService.SetChildLockAsync(request.Enable, cancellationToken);
+                var result = await roombaService.SetChildLockAsync(request.Enable, robotId, cancellationToken);
                 return result.Success ? Results.Ok(result) : Results.BadRequest(result);
             })
             .WithName("SetChildLock")
@@ -229,10 +249,11 @@ public static class RoombaEndpoints
 
         group.MapPost("/bin-pause", async (
                 [FromBody] EnableSettingRequest request,
+                [FromQuery] string robotId,
                 RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
-                var result = await roombaService.SetBinPauseAsync(request.Enable, cancellationToken);
+                var result = await roombaService.SetBinPauseAsync(request.Enable, robotId, cancellationToken);
                 return result.Success ? Results.Ok(result) : Results.BadRequest(result);
             })
             .WithName("SetBinPause")
@@ -243,10 +264,11 @@ public static class RoombaEndpoints
 
         group.MapPost("/cleaning-passes", async (
                 [FromBody] CleaningPassesRequest request,
+                [FromQuery] string robotId,
                 RoombaApiService roombaService,
                 CancellationToken cancellationToken) =>
             {
-                var result = await roombaService.SetCleaningPassesAsync(request.Passes, cancellationToken);
+                var result = await roombaService.SetCleaningPassesAsync(request.Passes, robotId, cancellationToken);
                 return result.Success ? Results.Ok(result) : Results.BadRequest(result);
             })
             .WithName("SetCleaningPasses")
@@ -259,13 +281,21 @@ public static class RoombaEndpoints
     private static void MapStatusEndpoints(RouteGroupBuilder group)
     {
         group.MapGet("/stream", async (
-                [FromServices] RoombaStatusService statusService,
+                [FromQuery] string robotId,
+                [FromServices] RoombaStatusManager statusManager,
                 HttpContext context,
                 [FromServices] ILogger<RoombaApiService> logger,
                 [FromServices] IHostApplicationLifetime lifetime,
                 CancellationToken cancellationToken
             ) =>
             {
+                if (string.IsNullOrWhiteSpace(robotId))
+                {
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    await context.Response.WriteAsync("robotId is required", cancellationToken);
+                    return;
+                }
+
                 context.Response.Headers.Append("Content-Type", "text/event-stream");
                 context.Response.Headers.Append("Cache-Control", "no-cache");
                 context.Response.Headers.Append("Connection", "keep-alive");
@@ -280,7 +310,8 @@ public static class RoombaEndpoints
 
                 try
                 {
-                    var lastStatus = statusService.GetLastStatus();
+                    var subscription = await statusManager.GetSubscription(robotId, cancellationToken);
+                    var lastStatus = subscription.LastStatus;
 
                     var json = System.Text.Json.JsonSerializer.Serialize(lastStatus.State);
                     var message = $"event: status\ndata: {json}\n\n";
@@ -291,7 +322,7 @@ public static class RoombaEndpoints
 
                     logger.LogDebug("Sent last known status to new client");
 
-                    await foreach (var update in statusService.StatusUpdates.ReadAllAsync(cts.Token))
+                    await foreach (var update in subscription.Updates.ReadAllAsync(cts.Token))
                     {
                         json = System.Text.Json.JsonSerializer.Serialize(update.State);
                         message = $"event: status\ndata: {json}\n\n";
@@ -319,11 +350,25 @@ public static class RoombaEndpoints
     {
         group.MapGet("/", async (
                 [FromQuery] int? timeout,
+                [FromQuery] bool? save,
                 RoombaApiService roombaService,
+                IRobotRegistry registry,
                 CancellationToken cancellationToken) =>
             {
                 var timeoutSeconds = timeout ?? 5;
                 var result = await roombaService.DiscoverRoombas(timeoutSeconds, cancellationToken);
+
+                if (result.Success && save is true)
+                {
+                    foreach (var roomba in result.Roombas)
+                    {
+                        await registry.Create(new RobotCreateRequest
+                        {
+                            Blid = roomba.Blid,
+                            Ip = roomba.Ip,
+                        }, cancellationToken);
+                    }
+                }
 
                 return result.Success
                     ? Results.Ok(result)
@@ -334,8 +379,141 @@ public static class RoombaEndpoints
             .WithName("DiscoverRoombas")
             .WithSummary("Discover Roomba robots on the network")
             .WithDescription(
-                "Scans the local network for available Roomba robots using UDP broadcast. Returns a list of discovered robots with their network information.")
+                "Scans the local network for available Roomba robots using UDP broadcast. Returns a list of discovered robots with their network information. Set save=true to store them in the registry.")
             .Produces<DiscoveryResponse>()
             .Produces(StatusCodes.Status500InternalServerError);
+    }
+
+    private static void MapRobotRegistryEndpoints(RouteGroupBuilder group)
+    {
+        group.MapGet("/", async (
+                IRobotRegistry registry,
+                CancellationToken cancellationToken) =>
+            {
+                var robots = await registry.GetAll(cancellationToken);
+                return Results.Ok(robots);
+            })
+            .WithName("ListRobots")
+            .WithSummary("List registered Roombas")
+            .WithDescription("Returns all Roombas stored in the local registry.")
+            .Produces<List<RobotRecord>>();
+
+        group.MapGet("/{blid}", async (
+                string blid,
+                IRobotRegistry registry,
+                CancellationToken cancellationToken) =>
+            {
+                var robot = await registry.Get(blid, cancellationToken);
+                return robot is null ? Results.NotFound() : Results.Ok(robot);
+            })
+            .WithName("GetRobot")
+            .WithSummary("Get a registered Roomba")
+            .WithDescription("Returns a single Roomba record by BLID.")
+            .Produces<RobotRecord>()
+            .Produces(StatusCodes.Status404NotFound);
+
+        group.MapPost("/", async (
+                [FromBody] RobotCreateRequest request,
+                IRobotRegistry registry,
+                CancellationToken cancellationToken) =>
+            {
+                try
+                {
+                    var robot = await registry.Create(request, cancellationToken);
+                    return Results.Created($"/api/roomba/robots/{robot.Blid}", robot);
+                }
+                catch (ArgumentException ex)
+                {
+                    return Results.BadRequest(new { error = ex.Message });
+                }
+            })
+            .WithName("CreateRobot")
+            .WithSummary("Register a Roomba")
+            .WithDescription("Adds or updates a Roomba entry in the local registry.")
+            .Produces<RobotRecord>()
+            .Produces(StatusCodes.Status400BadRequest);
+
+        group.MapPut("/{blid}", async (
+                string blid,
+                [FromBody] RobotUpdateRequest request,
+                IRobotRegistry registry,
+                IRoombaClientFactory clientFactory,
+                CancellationToken cancellationToken) =>
+            {
+                try
+                {
+                    var robot = await registry.Update(blid, request, cancellationToken);
+                    clientFactory.RemoveClient(blid);
+                    return Results.Ok(robot);
+                }
+                catch (KeyNotFoundException)
+                {
+                    return Results.NotFound();
+                }
+            })
+            .WithName("UpdateRobot")
+            .WithSummary("Update a registered Roomba")
+            .WithDescription("Updates a Roomba entry in the local registry.")
+            .Produces<RobotRecord>()
+            .Produces(StatusCodes.Status404NotFound);
+
+        group.MapDelete("/{blid}", async (
+                string blid,
+                IRobotRegistry registry,
+                IRoombaClientFactory clientFactory,
+                CancellationToken cancellationToken) =>
+            {
+                var removed = await registry.Delete(blid, cancellationToken);
+                clientFactory.RemoveClient(blid);
+                return removed ? Results.NoContent() : Results.NotFound();
+            })
+            .WithName("DeleteRobot")
+            .WithSummary("Remove a Roomba")
+            .WithDescription("Deletes a Roomba entry from the local registry.")
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status404NotFound);
+
+        group.MapPost("/{blid}/pair", async (
+                string blid,
+                [FromBody] RobotPairRequest? request,
+                IRobotRegistry registry,
+                IRoombaPasswordService passwordService,
+                CancellationToken cancellationToken) =>
+            {
+                var robot = await registry.Get(blid, cancellationToken);
+                if (robot is null)
+                {
+                    return Results.NotFound();
+                }
+
+                var ip = request?.Ip ?? robot.Ip;
+                var port = request?.Port ?? robot.Port;
+                var password = await passwordService.GetPassword(ip, port, cancellationToken);
+
+                if (string.IsNullOrEmpty(password))
+                {
+                    return Results.BadRequest(new RobotPairResponse
+                    {
+                        Success = false,
+                        Message = "Password retrieval failed.",
+                    });
+                }
+
+                await registry.UpdatePassword(blid, password, cancellationToken);
+                var updated = await registry.Get(blid, cancellationToken);
+
+                return Results.Ok(new RobotPairResponse
+                {
+                    Success = true,
+                    Message = "Password retrieved and stored.",
+                    Robot = updated
+                });
+            })
+            .WithName("PairRobot")
+            .WithSummary("Pair a Roomba and store its password")
+            .WithDescription("Retrieves the password from a Roomba and stores it in the registry.")
+            .Produces<RobotPairResponse>()
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status404NotFound);
     }
 }
