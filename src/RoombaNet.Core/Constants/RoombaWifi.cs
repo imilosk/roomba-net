@@ -3,7 +3,7 @@ namespace RoombaNet.Core.Constants;
 /// <summary>
 /// Constants related to Roomba Wi-Fi configuration and AP mode
 /// </summary>
-internal static class RoombaWifi
+public static class RoombaApDefaults
 {
     /// <summary>
     /// Default IP address of Roomba when in Access Point mode

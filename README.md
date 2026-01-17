@@ -254,6 +254,11 @@ curl http://localhost:8080/api/roomba/robots
 
 # Pair a robot to store its password (put robot in pairing mode first)
 curl -X POST http://localhost:8080/api/roomba/robots/{blid}/pair
+
+# Configure Wi-Fi (connect to Roomba's AP first)
+curl -X POST "http://localhost:8080/api/roomba/wifi/configure?robotId={blid}" \
+  -H "Content-Type: application/json" \
+  -d '{"ssid":"YourNetwork","password":"YourPassword"}'
 ```
 
 #### Single Commands
@@ -309,6 +314,14 @@ curl -X POST "http://localhost:8080/api/roomba/settings/bin-pause?robotId={blid}
 curl -X POST "http://localhost:8080/api/roomba/settings/cleaning-passes?robotId={blid}" \
   -H "Content-Type: application/json" \
   -d '{"passes": 2}'
+```
+
+#### Wi-Fi Configuration
+```bash
+# Configure Wi-Fi (connect to Roomba's AP first)
+curl -X POST "http://localhost:8080/api/roomba/wifi/configure?robotId={blid}" \
+  -H "Content-Type: application/json" \
+  -d '{"ssid":"YourNetwork","password":"YourPassword"}'
 ```
 
 #### Real-time Status Streaming

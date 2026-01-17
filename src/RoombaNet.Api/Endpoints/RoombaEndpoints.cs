@@ -27,11 +27,15 @@ public static class RoombaEndpoints
         var robotsGroup = app.MapGroup("/api/roomba/robots")
             .WithTags("Roomba Robots");
 
+        var wifiGroup = app.MapGroup("/api/roomba/wifi")
+            .WithTags("Roomba Robots");
+
         MapCommandEndpoints(commandsGroup);
         MapSettingsEndpoints(settingsGroup);
         MapStatusEndpoints(statusGroup);
         MapDiscoveryEndpoints(discoveryGroup);
         MapRobotRegistryEndpoints(robotsGroup);
+        MapWifiEndpoints(wifiGroup);
     }
 
     private static void MapCommandEndpoints(RouteGroupBuilder group)
@@ -478,7 +482,6 @@ public static class RoombaEndpoints
 
         group.MapPost("/{blid}/pair", async (
                 string blid,
-                [FromBody] RobotPairRequest? request,
                 IRobotRegistry registry,
                 IRoombaClientFactory clientFactory,
                 IRoombaPasswordService passwordService,
@@ -490,9 +493,10 @@ public static class RoombaEndpoints
                     return Results.NotFound();
                 }
 
-                var ip = request?.Ip ?? robot.Ip;
-                var port = request?.Port ?? robot.Port;
-                var password = await passwordService.GetPassword(ip, port, cancellationToken);
+                var password = await passwordService.GetPassword(
+                    Core.Constants.RoombaApDefaults.DefaultApAddress,
+                    Core.Constants.RoombaApDefaults.DefaultApPort,
+                    cancellationToken);
 
                 if (string.IsNullOrEmpty(password))
                 {
@@ -520,5 +524,30 @@ public static class RoombaEndpoints
             .Produces<RobotPairResponse>()
             .Produces(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status404NotFound);
+    }
+
+    private static void MapWifiEndpoints(RouteGroupBuilder group)
+    {
+        group.MapPost("/configure", async (
+                [FromBody] WifiConfigureRequest request,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.ConfigureWifiAsync(
+                    robotId,
+                    request.Ssid,
+                    request.Password,
+                    cancellationToken);
+
+                return result.Success
+                    ? Results.Ok(result)
+                    : Results.BadRequest(result);
+            })
+            .WithName("ConfigureWifi")
+            .WithSummary("Configure Roomba Wi-Fi")
+            .WithDescription("Configure Wi-Fi credentials while connected to the Roomba's access point.")
+            .Produces<WifiConfigureResponse>()
+            .Produces<WifiConfigureResponse>(StatusCodes.Status400BadRequest);
     }
 }

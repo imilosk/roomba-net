@@ -33,5 +33,5 @@ public sealed class WifiConfigurationRequest
     /// <summary>
     /// Firmware version for encoding (defaults to v3+)
     /// </summary>
-    public int FirmwareVersion { get; init; } = Constants.RoombaWifi.DefaultFirmwareVersion;
+    public int FirmwareVersion { get; init; } = Constants.RoombaApDefaults.DefaultFirmwareVersion;
 }

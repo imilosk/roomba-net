@@ -40,7 +40,7 @@ public class RoombaWifiService : IRoombaWifiService
             // Connect to Roomba's AP network (192.168.10.1)
             client = _mqttClientFactory.CreateMqttClient();
             var options = new MqttClientOptionsBuilder()
-                .WithTcpServer(RoombaWifi.DefaultApAddress, RoombaWifi.DefaultApPort)
+                .WithTcpServer(RoombaApDefaults.DefaultApAddress, RoombaApDefaults.DefaultApPort)
                 .WithClientId(_roombaSettings.Blid)
                 .WithCredentials(_roombaSettings.Blid, _roombaSettings.Password)
                 .WithCleanSession()
@@ -52,7 +52,7 @@ public class RoombaWifiService : IRoombaWifiService
                 })
                 .Build();
 
-            _logger.LogDebug("Connecting to Roomba's AP network at {Address}...", RoombaWifi.DefaultApAddress);
+            _logger.LogDebug("Connecting to Roomba's AP network at {Address}...", RoombaApDefaults.DefaultApAddress);
             var connectResult = await client.ConnectAsync(options, cancellationToken);
 
             if (connectResult.ResultCode != MqttClientConnectResultCode.Success)

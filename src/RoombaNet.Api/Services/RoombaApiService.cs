@@ -1,7 +1,11 @@
 using RoombaNet.Api.Models;
 using RoombaNet.Api.Services.RoombaClients;
+using MQTTnet;
 using RoombaNet.Core;
 using RoombaNet.Core.Constants;
+using RoombaNet.Core.WifiConfig;
+using RoombaNet.Settings.Settings;
+using RoombaNet.Transport.Mqtt;
 
 namespace RoombaNet.Api.Services;
 
@@ -9,6 +13,8 @@ public class RoombaApiService
 {
     private readonly IRoombaDiscoveryService _discoveryService;
     private readonly IRoombaClientFactory _clientFactory;
+    private readonly MqttClientFactory _mqttClientFactory;
+    private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<RoombaApiService> _logger;
     private readonly TimeProvider _timeProvider;
 
@@ -20,11 +26,15 @@ public class RoombaApiService
     public RoombaApiService(
         IRoombaClientFactory clientFactory,
         IRoombaDiscoveryService discoveryService,
+        MqttClientFactory mqttClientFactory,
+        ILoggerFactory loggerFactory,
         ILogger<RoombaApiService> logger,
         TimeProvider timeProvider)
     {
         _clientFactory = clientFactory;
         _discoveryService = discoveryService;
+        _mqttClientFactory = mqttClientFactory;
+        _loggerFactory = loggerFactory;
         _logger = logger;
         _timeProvider = timeProvider;
     }
@@ -467,6 +477,89 @@ public class RoombaApiService
                 Success = false,
                 Error = $"{ex.GetType().Name}: {ex.Message}"
             };
+        }
+    }
+
+    public async Task<WifiConfigureResponse> ConfigureWifiAsync(
+        string robotId,
+        string ssid,
+        string password,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        if (string.IsNullOrWhiteSpace(ssid) || string.IsNullOrWhiteSpace(password))
+        {
+            return new WifiConfigureResponse(
+                Success: false,
+                Message: "SSID and password are required.",
+                Timestamp: timestamp,
+                ExecutionId: executionId,
+                Error: "InvalidRequest"
+            );
+        }
+
+        try
+        {
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            var settings = new RoombaSettings
+            {
+                Blid = client.Settings.Blid,
+                Ip = client.Settings.Ip,
+                Port = client.Settings.Port,
+                Password = client.Settings.Password
+            };
+
+            var publisher = new MqttPublisher(_loggerFactory.CreateLogger<MqttPublisher>());
+            var commandBuilder = new WifiConfigCommandBuilder(
+                _loggerFactory.CreateLogger<WifiConfigCommandBuilder>(),
+                publisher);
+
+            var wifiService = new RoombaWifiService(
+                _loggerFactory.CreateLogger<RoombaWifiService>(),
+                _mqttClientFactory,
+                settings,
+                commandBuilder);
+
+            var request = new WifiConfigurationRequest
+            {
+                Ssid = ssid,
+                Password = password
+            };
+
+            var success = await wifiService.ConfigureWifiAsync(request, cancellationToken);
+            if (!success)
+            {
+                return new WifiConfigureResponse(
+                    Success: false,
+                    Message: "Failed to configure Wi-Fi.",
+                    Timestamp: timestamp,
+                    ExecutionId: executionId,
+                    Error: "WifiConfigFailed"
+                );
+            }
+
+            return new WifiConfigureResponse(
+                Success: true,
+                Message: "Wi-Fi configuration sent successfully.",
+                Timestamp: timestamp,
+                ExecutionId: executionId
+            );
+        }
+        catch (Exception ex)
+        {
+            var errorMessage = "Failed to configure Wi-Fi.";
+            _logger.LogError(ex, errorMessage);
+
+            return new WifiConfigureResponse(
+                Success: false,
+                Message: errorMessage,
+                Timestamp: timestamp,
+                ExecutionId: executionId,
+                Error: ex.GetType().Name,
+                Details: ex.Message
+            );
         }
     }
 }
