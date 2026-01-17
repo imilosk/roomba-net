@@ -13,6 +13,7 @@ public class RoombaConnectionManager : IRoombaConnectionManager
     private readonly RoombaSettings _roombaSettings;
     private readonly IMqttClient _mqttClient;
     private readonly MqttClientOptions _mqttClientOptions;
+    private string? _lastConnectionError;
 
     public bool IsConnected => _mqttClient.IsConnected;
 
@@ -35,7 +36,7 @@ public class RoombaConnectionManager : IRoombaConnectionManager
         var success = await EnsureConnectedAsync(cancellationToken);
 
         return !success
-            ? throw new InvalidOperationException("Failed to connect to MQTT broker.")
+            ? throw new InvalidOperationException(_lastConnectionError ?? "Failed to connect to MQTT broker.")
             : _mqttClient;
     }
 
@@ -52,6 +53,7 @@ public class RoombaConnectionManager : IRoombaConnectionManager
 
         if (result.ResultCode == MqttClientConnectResultCode.Success)
         {
+            _lastConnectionError = null;
             _logger.LogInformation(
                 "Successfully connected to MQTT broker. Session Present: {IsSessionPresent}. Assigned Client ID: {AssignedClientIdentifier}",
                 result.IsSessionPresent,
@@ -60,6 +62,7 @@ public class RoombaConnectionManager : IRoombaConnectionManager
             return true;
         }
 
+        _lastConnectionError = $"Failed to connect to MQTT broker: {result.ResultCode}, reason: {result.ReasonString}";
         _logger.LogError(
             "Failed to connect to MQTT broker: {ResultCode}, reason: {Reason}",
             result.ResultCode,

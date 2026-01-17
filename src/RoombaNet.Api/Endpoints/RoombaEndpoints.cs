@@ -480,6 +480,7 @@ public static class RoombaEndpoints
                 string blid,
                 [FromBody] RobotPairRequest? request,
                 IRobotRegistry registry,
+                IRoombaClientFactory clientFactory,
                 IRoombaPasswordService passwordService,
                 CancellationToken cancellationToken) =>
             {
@@ -503,6 +504,7 @@ public static class RoombaEndpoints
                 }
 
                 await registry.UpdatePassword(blid, password, cancellationToken);
+                clientFactory.RemoveClient(blid);
                 var updated = await registry.Get(blid, cancellationToken);
 
                 return Results.Ok(new RobotPairResponse
