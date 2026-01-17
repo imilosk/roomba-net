@@ -26,6 +26,7 @@ public class RoombaPasswordService : IRoombaPasswordService
         _logger.LogInformation("Retrieving password from Roomba at {IpAddress}:{Port}", ipAddress, port);
 
         var password = await _passwordClient.GetPassword(ipAddress, port, cancellationToken);
+        password = NormalizePassword(password);
 
         if (string.IsNullOrEmpty(password))
         {
@@ -41,5 +42,20 @@ public class RoombaPasswordService : IRoombaPasswordService
         }
 
         return password;
+    }
+
+    private static string NormalizePassword(string password)
+    {
+        if (string.IsNullOrEmpty(password) || password.StartsWith(":1:", StringComparison.Ordinal))
+        {
+            return password;
+        }
+
+        if (password.StartsWith(":", StringComparison.Ordinal))
+        {
+            return $":1{password}";
+        }
+
+        return $":1:{password}";
     }
 }

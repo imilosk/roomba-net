@@ -424,7 +424,10 @@ public static class RoombaEndpoints
                 }
                 catch (ArgumentException ex)
                 {
-                    return Results.BadRequest(new { error = ex.Message });
+                    return Results.BadRequest(new
+                    {
+                        error = ex.Message,
+                    });
                 }
             })
             .WithName("CreateRobot")
