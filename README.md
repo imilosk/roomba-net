@@ -314,6 +314,24 @@ curl -X POST "http://localhost:8080/api/roomba/settings/bin-pause?robotId={blid}
 curl -X POST "http://localhost:8080/api/roomba/settings/cleaning-passes?robotId={blid}" \
   -H "Content-Type: application/json" \
   -d '{"passes": 2}'
+
+# Braava: set mopping overlap (rankOverlap)
+curl -X POST "http://localhost:8080/api/roomba/settings/rank-overlap?robotId={blid}" \
+  -H "Content-Type: application/json" \
+  -d '{"value": 1}'
+# 0-100 percentage
+
+# Braava: set liquid amount (padWetness)
+curl -X POST "http://localhost:8080/api/roomba/settings/liquid-amount?robotId={blid}" \
+  -H "Content-Type: application/json" \
+  -d '{"value": 1}'
+# 1 = Eco, 2 = Standard, 3 = Ultra
+
+# Braava: set charging light pattern (chrgLrPtrn)
+curl -X POST "http://localhost:8080/api/roomba/settings/charging-light-pattern?robotId={blid}" \
+  -H "Content-Type: application/json" \
+  -d '{"value": 1}'
+# 0 = Docking & charging, 1 = Docking only, 2 = No status lights
 ```
 
 #### Wi-Fi Configuration

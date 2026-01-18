@@ -280,6 +280,54 @@ public static class RoombaEndpoints
             .WithDescription("Set the number of cleaning passes: 1 (OnePass), 2 (TwoPass), or 3 (RoomSizeClean/Auto)")
             .Produces<SettingsResponse>()
             .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/rank-overlap", async (
+                [FromBody] RankOverlapRequest request,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetRankOverlapAsync(request.Value, robotId, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetRankOverlap")
+            .WithSummary("Set mopping overlap (Braava)")
+            .WithDescription("Set Braava rankOverlap with a percentage value from 0 to 100.")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/liquid-amount", async (
+                [FromBody] LiquidAmountRequest request,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetLiquidAmountAsync(
+                    request.Value,
+                    robotId,
+                    cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetLiquidAmount")
+            .WithSummary("Set liquid amount (Braava)")
+            .WithDescription("Set Braava padWetness (liquid amount) with a raw integer value: 1 (Eco), 2 (Standard), 3 (Ultra).")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/charging-light-pattern", async (
+                [FromBody] ChargingLightPatternRequest request,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetChargingLightPatternAsync(request.Value, robotId, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetChargingLightPattern")
+            .WithSummary("Set charging light pattern (Braava)")
+            .WithDescription("Set Braava chrgLrPtrn with a raw integer value: 0 (Docking & charging), 1 (Docking only), 2 (No status lights).")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
     }
 
     private static void MapStatusEndpoints(RouteGroupBuilder group)

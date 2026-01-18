@@ -6,5 +6,6 @@ namespace RoombaNet.Core.Payloads;
 [JsonSerializable(typeof(SettingPayload<bool>))]
 [JsonSerializable(typeof(SettingPayload<int>))]
 [JsonSerializable(typeof(SettingPayload<string>))]
+[JsonSerializable(typeof(SettingPayload<PadWetnessSetting>))]
 [JsonSourceGenerationOptions(WriteIndented = false, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 internal partial class RoombaJsonContext : JsonSerializerContext;

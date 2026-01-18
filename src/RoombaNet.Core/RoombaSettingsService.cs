@@ -57,6 +57,26 @@ public class RoombaSettingsService : IRoombaSettingsService
         }
     }
 
+    public Task SetRankOverlap(int value, CancellationToken cancellationToken = default)
+    {
+        return SetSetting(RoombaSetting.RankOverlap, value, cancellationToken);
+    }
+
+    public Task SetChargingLightPattern(int value, CancellationToken cancellationToken = default)
+    {
+        return SetSetting(RoombaSetting.ChargingLightPattern, value, cancellationToken);
+    }
+
+    public Task SetPadWetness(int disposable, CancellationToken cancellationToken = default)
+    {
+        var wetness = new PadWetnessSetting
+        {
+            Disposable = disposable,
+        };
+
+        return SetSetting(RoombaSetting.PadWetness, wetness, cancellationToken);
+    }
+
     private async Task SetSetting<T>(
         string setting,
         T value,
@@ -125,6 +145,11 @@ public class RoombaSettingsService : IRoombaSettingsService
         if (typeof(T) == typeof(string))
         {
             return (JsonTypeInfo<SettingPayload<T>>)(object)RoombaJsonContext.Default.SettingPayloadString;
+        }
+
+        if (typeof(T) == typeof(PadWetnessSetting))
+        {
+            return (JsonTypeInfo<SettingPayload<T>>)(object)RoombaJsonContext.Default.SettingPayloadPadWetnessSetting;
         }
 
         throw new NotSupportedException(

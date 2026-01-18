@@ -436,6 +436,198 @@ public class RoombaApiService
         }
     }
 
+    public async Task<SettingsResponse> SetRankOverlapAsync(
+        int value,
+        string robotId,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            _logger.LogInformation(
+                "Setting rank overlap to '{Value}' with execution ID '{ExecutionId}'",
+                value,
+                executionId
+            );
+
+            if (value is < 0 or > 100)
+            {
+                var invalidMessage =
+                    $"Invalid rank overlap value: {value}. Valid values are 0-100.";
+                _logger.LogWarning(invalidMessage);
+
+                return new SettingsResponse(
+                    Success: false,
+                    Setting: "RankOverlap",
+                    Message: invalidMessage,
+                    Timestamp: timestamp,
+                    ExecutionId: executionId,
+                    Error: "InvalidValue",
+                    Details: "Valid values: 0-100"
+                );
+            }
+
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.SettingsService.SetRankOverlap(value, cancellationToken);
+
+            var successMessage = $"Rank overlap set to {value} successfully";
+            _logger.LogInformation(successMessage);
+
+            return new SettingsResponse(
+                Success: true,
+                Setting: "RankOverlap",
+                Message: successMessage,
+                Timestamp: timestamp,
+                ExecutionId: executionId
+            );
+        }
+        catch (Exception ex)
+        {
+            var errorMessage = $"Failed to set rank overlap to '{value}'";
+            _logger.LogError(ex, errorMessage);
+
+            return new SettingsResponse(
+                Success: false,
+                Setting: "RankOverlap",
+                Message: errorMessage,
+                Timestamp: timestamp,
+                ExecutionId: executionId,
+                Error: ex.GetType().Name,
+                Details: ex.Message
+            );
+        }
+    }
+
+    public async Task<SettingsResponse> SetLiquidAmountAsync(
+        int value,
+        string robotId,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            _logger.LogInformation(
+                "Setting liquid amount to {Value} with execution ID '{ExecutionId}'",
+                value,
+                executionId
+            );
+
+            if (!Enum.IsDefined(typeof(PadWetnessLevel), value))
+            {
+                var invalidMessage =
+                    $"Invalid liquid amount value. Valid values are 1 (Eco), 2 (Standard), or 3 (Ultra)";
+                _logger.LogWarning(invalidMessage);
+
+                return new SettingsResponse(
+                    Success: false,
+                    Setting: "LiquidAmount",
+                    Message: invalidMessage,
+                    Timestamp: timestamp,
+                    ExecutionId: executionId,
+                    Error: "InvalidValue",
+                    Details: "Valid values: 1, 2, or 3"
+                );
+            }
+
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.SettingsService.SetPadWetness(value, cancellationToken);
+
+            var successMessage = "Liquid amount set successfully";
+            _logger.LogInformation(successMessage);
+
+            return new SettingsResponse(
+                Success: true,
+                Setting: "LiquidAmount",
+                Message: successMessage,
+                Timestamp: timestamp,
+                ExecutionId: executionId
+            );
+        }
+        catch (Exception ex)
+        {
+            var errorMessage = "Failed to set liquid amount";
+            _logger.LogError(ex, errorMessage);
+
+            return new SettingsResponse(
+                Success: false,
+                Setting: "LiquidAmount",
+                Message: errorMessage,
+                Timestamp: timestamp,
+                ExecutionId: executionId,
+                Error: ex.GetType().Name,
+                Details: ex.Message
+            );
+        }
+    }
+
+    public async Task<SettingsResponse> SetChargingLightPatternAsync(
+        int value,
+        string robotId,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            _logger.LogInformation(
+                "Setting charging light pattern to '{Value}' with execution ID '{ExecutionId}'",
+                value,
+                executionId
+            );
+
+            if (!Enum.IsDefined(typeof(ChargingLightPattern), value))
+            {
+                var invalidMessage =
+                    $"Invalid charging light pattern value: {value}. Valid values are 0 (DockingAndCharging), 1 (DockingOnly), or 2 (NoLights)";
+                _logger.LogWarning(invalidMessage);
+
+                return new SettingsResponse(
+                    Success: false,
+                    Setting: "ChargingLightPattern",
+                    Message: invalidMessage,
+                    Timestamp: timestamp,
+                    ExecutionId: executionId,
+                    Error: "InvalidValue",
+                    Details: "Valid values: 0, 1, or 2"
+                );
+            }
+
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.SettingsService.SetChargingLightPattern(value, cancellationToken);
+
+            var successMessage = $"Charging light pattern set to {value} successfully";
+            _logger.LogInformation(successMessage);
+
+            return new SettingsResponse(
+                Success: true,
+                Setting: "ChargingLightPattern",
+                Message: successMessage,
+                Timestamp: timestamp,
+                ExecutionId: executionId
+            );
+        }
+        catch (Exception ex)
+        {
+            var errorMessage = $"Failed to set charging light pattern to '{value}'";
+            _logger.LogError(ex, errorMessage);
+
+            return new SettingsResponse(
+                Success: false,
+                Setting: "ChargingLightPattern",
+                Message: errorMessage,
+                Timestamp: timestamp,
+                ExecutionId: executionId,
+                Error: ex.GetType().Name,
+                Details: ex.Message
+            );
+        }
+    }
+
     public async Task<DiscoveryResponse> DiscoverRoombas(
         int timeoutSeconds = 5,
         CancellationToken cancellationToken = default
