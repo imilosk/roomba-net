@@ -236,6 +236,27 @@ public static class RoombaEndpoints
 
     private static void MapSettingsEndpoints(RouteGroupBuilder group)
     {
+        group.MapGet("/available", async (
+                [FromQuery] string robotId,
+                [FromServices] RoombaStatusManager statusManager,
+                CancellationToken cancellationToken) =>
+            {
+                if (string.IsNullOrWhiteSpace(robotId))
+                {
+                    return Results.BadRequest("robotId is required");
+                }
+
+                var subscription = await statusManager.GetSubscription(robotId, cancellationToken);
+                var settings = GetAvailableSettings(subscription.LastStatus.State);
+
+                return Results.Ok(new AvailableSettingsResponse(robotId, settings));
+            })
+            .WithName("GetAvailableSettings")
+            .WithSummary("Get available settings for a robot")
+            .WithDescription("Returns a filtered list of settings based on the robot's reported state.")
+            .Produces<AvailableSettingsResponse>()
+            .Produces<string>(StatusCodes.Status400BadRequest);
+
         group.MapPost("/child-lock", async (
                 [FromBody] EnableSettingRequest request,
                 [FromQuery] string robotId,
@@ -328,6 +349,43 @@ public static class RoombaEndpoints
             .WithDescription("Set Braava chrgLrPtrn with a raw integer value: 0 (Docking & charging), 1 (Docking only), 2 (No status lights).")
             .Produces<SettingsResponse>()
             .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+    }
+
+    private static List<string> GetAvailableSettings(RoombaState state)
+    {
+        var settings = new List<string>();
+
+        if (state.ChildLock.HasValue)
+        {
+            settings.Add("childLock");
+        }
+
+        if (state.BinPause.HasValue)
+        {
+            settings.Add("binPause");
+        }
+
+        if (state.TwoPass.HasValue || state.NoAutoPasses.HasValue)
+        {
+            settings.Add("cleaningPasses");
+        }
+
+        if (state.RankOverlap.HasValue)
+        {
+            settings.Add("rankOverlap");
+        }
+
+        if (state.PadWetness?.Disposable.HasValue == true || state.PadWetness?.Reusable.HasValue == true)
+        {
+            settings.Add("padWetness");
+        }
+
+        if (state.ChrgLrPtrn.HasValue)
+        {
+            settings.Add("chrgLrPtrn");
+        }
+
+        return settings;
     }
 
     private static void MapStatusEndpoints(RouteGroupBuilder group)
