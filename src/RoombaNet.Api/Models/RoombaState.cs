@@ -79,6 +79,9 @@ public class RoombaState
     [JsonPropertyName("childLock")]
     public bool? ChildLock { get; set; }
 
+    [JsonPropertyName("chrgLrPtrn")]
+    public int? ChrgLrPtrn { get; set; }
+
     [JsonPropertyName("cleanMissionStatus")]
     public CleanMissionStatus? CleanMissionStatus { get; set; }
 
@@ -171,7 +174,9 @@ public class RoombaState
     [JsonPropertyName("pmapShare")]
     public PmapShare? PmapShare { get; set; }
 
-    [JsonIgnore]
+    [JsonPropertyName("padWetness")]
+    public PadWetnessState? PadWetness { get; set; }
+
     [JsonPropertyName("rankOverlap")]
     public int? RankOverlap { get; set; }
 
@@ -920,6 +925,15 @@ public class TimezoneEvent
 
     [JsonPropertyName("off")]
     public int? Off { get; set; }
+}
+
+public class PadWetnessState
+{
+    [JsonPropertyName("disposable")]
+    public int? Disposable { get; set; }
+
+    [JsonPropertyName("reusable")]
+    public int? Reusable { get; set; }
 }
 
 public class NetworkInfo
