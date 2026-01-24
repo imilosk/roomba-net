@@ -19,31 +19,18 @@ public class GetCommand : Command
         var passwordCommand = new Command("password", "Get Roomba password (hold HOME button for 2 seconds first)");
         passwordCommand.Aliases.Add("pwd");
         passwordCommand.Aliases.Add("pass");
-
-        var ipOption = new Option<string>("--ip")
-        {
-            Description = "Roomba IP address",
-        };
         var portOption = new Option<int>("--port")
         {
             Description = "Roomba port",
             DefaultValueFactory = _ => 8883,
         };
 
-        passwordCommand.Add(ipOption);
         passwordCommand.Add(portOption);
 
         passwordCommand.SetAction(async parseResult =>
         {
-            var ip = parseResult.GetValue(ipOption);
-            if (string.IsNullOrEmpty(ip))
-            {
-                Console.WriteLine("Error: --ip parameter is required");
-                return;
-            }
-
             var port = parseResult.GetValue(portOption);
-            await GetPassword(ip, port);
+            await GetPassword(Core.Constants.RoombaApDefaults.DefaultApAddress, port);
         });
 
         Subcommands.Add(passwordCommand);

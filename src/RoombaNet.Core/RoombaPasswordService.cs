@@ -44,6 +44,42 @@ public class RoombaPasswordService : IRoombaPasswordService
         return password;
     }
 
+    public async Task<bool> SetPassword(
+        string ipAddress,
+        string password,
+        string assetId,
+        string assetType,
+        int port = 8883,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            _logger.LogWarning("Password is required to set a new Roomba password.");
+            return false;
+        }
+
+        _logger.LogInformation("Setting Roomba password at {IpAddress}:{Port}", ipAddress, port);
+
+        try
+        {
+            await _passwordClient.SetPassword(
+                ipAddress,
+                password,
+                assetId,
+                assetType,
+                port,
+                cancellationToken);
+            _logger.LogInformation("Password set request sent to Roomba at {IpAddress}:{Port}", ipAddress, port);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set Roomba password at {IpAddress}:{Port}", ipAddress, port);
+            return false;
+        }
+    }
+
     private static string NormalizePassword(string password)
     {
         if (string.IsNullOrEmpty(password) || password.StartsWith(":1:", StringComparison.Ordinal))

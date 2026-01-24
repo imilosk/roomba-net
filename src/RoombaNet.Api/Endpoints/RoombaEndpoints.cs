@@ -630,6 +630,46 @@ public static class RoombaEndpoints
             .Produces<RobotPairResponse>()
             .Produces(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status404NotFound);
+
+        group.MapPost("/{blid}/password", async (
+                string blid,
+                IRobotRegistry registry,
+                IRoombaPasswordService passwordService,
+                CancellationToken cancellationToken) =>
+            {
+                var robot = await registry.Get(blid, cancellationToken);
+                if (robot is null)
+                {
+                    return Results.NotFound();
+                }
+
+                var password = await passwordService.GetPassword(
+                    Core.Constants.RoombaApDefaults.DefaultApAddress,
+                    Core.Constants.RoombaApDefaults.DefaultApPort,
+                    cancellationToken);
+
+                if (string.IsNullOrEmpty(password))
+                {
+                    return Results.BadRequest(new RobotPasswordResponse
+                    {
+                        Success = false,
+                        Message = "Password retrieval failed.",
+                    });
+                }
+
+                return Results.Ok(new RobotPasswordResponse
+                {
+                    Success = true,
+                    Message = "Password retrieved.",
+                    Password = password
+                });
+            })
+            .WithName("GetRobotPassword")
+            .WithSummary("Retrieve a Roomba password without storing it")
+            .WithDescription("Retrieves the password from a Roomba without updating the registry.")
+            .Produces<RobotPasswordResponse>()
+            .Produces(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status404NotFound);
     }
 
     private static void MapWifiEndpoints(RouteGroupBuilder group)

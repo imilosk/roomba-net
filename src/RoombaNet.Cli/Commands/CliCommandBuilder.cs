@@ -1,4 +1,5 @@
 using RoombaNet.Core;
+using RoombaNet.Settings.Settings;
 using Command = System.CommandLine.Command;
 
 
@@ -12,6 +13,7 @@ public class CliCommandBuilder
     private readonly IRoombaWifiService _roombaWifiClient;
     private readonly IRoombaPasswordService _roombaPasswordService;
     private readonly IRoombaDiscoveryService _roombaDiscoveryService;
+    private readonly RoombaSettings _roombaSettings;
 
     public CliCommandBuilder(
         IRoombaSubscriptionService roombaSubscriber,
@@ -19,7 +21,8 @@ public class CliCommandBuilder
         IRoombaSettingsService roombaSettingsClient,
         IRoombaWifiService roombaWifiClient,
         IRoombaPasswordService roombaPasswordService,
-        IRoombaDiscoveryService roombaDiscoveryService
+        IRoombaDiscoveryService roombaDiscoveryService,
+        RoombaSettings roombaSettings
     )
     {
         _roombaSubscriber = roombaSubscriber;
@@ -28,6 +31,7 @@ public class CliCommandBuilder
         _roombaWifiClient = roombaWifiClient;
         _roombaPasswordService = roombaPasswordService;
         _roombaDiscoveryService = roombaDiscoveryService;
+        _roombaSettings = roombaSettings;
     }
 
     public IEnumerable<Command> BuildCommands(CancellationToken cancellationToken)
@@ -38,8 +42,9 @@ public class CliCommandBuilder
             new ExecuteCommand(_roombaCommandClient, cancellationToken),
             new SettingCommand(_roombaSettingsClient, cancellationToken),
             new GetCommand(_roombaPasswordService, cancellationToken),
+            new SetPasswordCommand(_roombaPasswordService, _roombaSettings, cancellationToken),
             new DiscoverCommand(_roombaDiscoveryService, cancellationToken),
-            new ConfigureWifiCommand(_roombaWifiClient, cancellationToken)
+            new ConfigureWifiCommand(_roombaWifiClient, cancellationToken),
         ];
     }
 }
