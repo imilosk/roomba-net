@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using RoombaNet.Settings;
 using RoombaNet.Settings.Settings;
 using RoombaNet.Transport.Mqtt;
 using RoombaNet.Transport.Tls;
@@ -16,9 +15,6 @@ public static class Bootstrapper
         bool requireSettings = true)
     {
         services.TryAddSingleton(TimeProvider.System);
-
-        // Register settings first - required by transport layers
-        services.AddRoombaSettings(configuration, requireSettings);
 
         services.AddPasswordClient(configuration);
 

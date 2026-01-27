@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using RoombaNet.Cli.Commands;
 using RoombaNet.Cli.Services;
 using RoombaNet.Core;
+using RoombaNet.Settings;
 
 namespace RoombaNet.Cli;
 
@@ -28,6 +29,8 @@ public static class Bootstrapper
             builder.SetMinimumLevel(LogLevel.Debug);
             builder.AddConsole();
         });
+
+        services.AddRoombaSettings(configuration);
 
         services.AddCore(configuration);
 

@@ -6,19 +6,10 @@ namespace RoombaNet.Settings;
 
 public static class Bootstrapper
 {
-    /// <summary>
-    /// Registers RoombaSettings from configuration.
-    /// This should be called once at the application startup before any other service registration.
-    /// </summary>
-    public static IServiceCollection AddRoombaSettings(this IServiceCollection services, IConfiguration configuration)
-    {
-        return AddRoombaSettings(services, configuration, requireSettings: true);
-    }
-
     public static IServiceCollection AddRoombaSettings(
         this IServiceCollection services,
-        IConfiguration configuration,
-        bool requireSettings)
+        IConfiguration configuration
+    )
     {
         var configurationSection = configuration.GetSection(nameof(RoombaSettings));
         var roombaSettings = configurationSection.Get<RoombaSettings>();
@@ -28,7 +19,7 @@ public static class Bootstrapper
         {
             services.AddSingleton(roombaSettings);
         }
-        else if (requireSettings)
+        else
         {
             throw new InvalidOperationException($"{nameof(RoombaSettings)} configuration is missing or invalid.");
         }
