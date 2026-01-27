@@ -5,7 +5,6 @@ using RoombaNet.Core;
 using RoombaNet.Core.Constants;
 using RoombaNet.Core.WifiConfig;
 using RoombaNet.Settings.Settings;
-using RoombaNet.Transport.Mqtt;
 
 namespace RoombaNet.Api.Services;
 

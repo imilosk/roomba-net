@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using RoombaNet.Core.WifiConfig;
 
 namespace RoombaNet.Api.Models;
 
@@ -985,13 +986,4 @@ public class WifiStatus
 
     [JsonPropertyName("cloud")]
     public int? Cloud { get; set; }
-}
-
-public class WifiConfig
-{
-    [JsonPropertyName("sec")]
-    public int? Sec { get; set; }
-
-    [JsonPropertyName("ssid")]
-    public string? Ssid { get; set; }
 }

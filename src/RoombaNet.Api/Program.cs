@@ -20,7 +20,7 @@ builder.Configuration
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 
-builder.Services.AddCore(builder.Configuration, requireSettings: false);
+builder.Services.AddCore(builder.Configuration);
 builder.Services.AddMqtt(builder.Configuration);
 builder.Services.AddRobotRegistry(builder.Configuration);
 
