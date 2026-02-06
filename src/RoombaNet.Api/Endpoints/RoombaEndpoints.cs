@@ -475,6 +475,7 @@ public static class RoombaEndpoints
                         await registry.Create(new RobotCreateRequest
                         {
                             Blid = roomba.Blid,
+                            Name = roomba.RobotName,
                             Ip = roomba.Ip,
                         }, cancellationToken);
                     }

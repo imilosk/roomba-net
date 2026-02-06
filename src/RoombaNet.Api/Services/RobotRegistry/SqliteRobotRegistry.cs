@@ -31,7 +31,7 @@ public class SqliteRobotRegistry : IRobotRegistry
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = """
-                              SELECT blid, ip, port, password
+                              SELECT blid, name, ip, port, password
                               FROM robots
                               ORDER BY blid;
                               """;
@@ -50,7 +50,7 @@ public class SqliteRobotRegistry : IRobotRegistry
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = """
-                              SELECT blid, ip, port, password
+                              SELECT blid, name, ip, port, password
                               FROM robots
                               WHERE blid = $blid;
                               """;
@@ -100,9 +100,10 @@ public class SqliteRobotRegistry : IRobotRegistry
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = """
-                              INSERT INTO robots (blid, ip, port, password, created_utc, updated_utc)
-                              VALUES ($blid, $ip, $port, $password, $created_utc, $updated_utc)
+                              INSERT INTO robots (blid, name, ip, port, password, created_utc, updated_utc)
+                              VALUES ($blid, $name, $ip, $port, $password, $created_utc, $updated_utc)
                               ON CONFLICT(blid) DO UPDATE SET
+                                  name = excluded.name,
                                   ip = excluded.ip,
                                   port = excluded.port,
                                   password = COALESCE(excluded.password, robots.password),
@@ -110,6 +111,7 @@ public class SqliteRobotRegistry : IRobotRegistry
                               """;
 
         command.Parameters.AddWithValue("$blid", request.Blid);
+        command.Parameters.AddWithValue("$name", request.Name);
         command.Parameters.AddWithValue("$ip", request.Ip);
         command.Parameters.AddWithValue("$port", port);
         command.Parameters.AddWithValue("$password", (object?)password ?? DBNull.Value);
@@ -120,6 +122,7 @@ public class SqliteRobotRegistry : IRobotRegistry
 
         var record = new RobotRecord(
             request.Blid,
+            request.Name,
             request.Ip,
             port,
             !string.IsNullOrEmpty(request.Password)
@@ -143,6 +146,7 @@ public class SqliteRobotRegistry : IRobotRegistry
 
         var updated = row with
         {
+            Name = request.Name ?? row.Name,
             Ip = request.Ip ?? row.Ip,
             Port = request.Port ?? row.Port,
             PasswordEncrypted = password,
@@ -153,6 +157,7 @@ public class SqliteRobotRegistry : IRobotRegistry
         using var command = connection.CreateCommand();
         command.CommandText = """
                               UPDATE robots SET
+                                  name = $name,
                                   ip = $ip,
                                   port = $port,
                                   password = $password,
@@ -161,6 +166,7 @@ public class SqliteRobotRegistry : IRobotRegistry
                               """;
 
         command.Parameters.AddWithValue("$blid", updated.Blid);
+        command.Parameters.AddWithValue("$name", updated.Name);
         command.Parameters.AddWithValue("$ip", updated.Ip);
         command.Parameters.AddWithValue("$port", updated.Port);
         command.Parameters.AddWithValue("$password", (object?)updated.PasswordEncrypted ?? DBNull.Value);
@@ -170,6 +176,7 @@ public class SqliteRobotRegistry : IRobotRegistry
 
         var record = new RobotRecord(
             updated.Blid,
+            updated.Name,
             updated.Ip,
             updated.Port,
             !string.IsNullOrEmpty(updated.PasswordEncrypted)
@@ -221,6 +228,11 @@ public class SqliteRobotRegistry : IRobotRegistry
             throw new ArgumentException("BLID is required.", nameof(request));
         }
 
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            throw new ArgumentException("Name is required.", nameof(request));
+        }
+
         if (string.IsNullOrWhiteSpace(request.Ip))
         {
             throw new ArgumentException("IP address is required.", nameof(request));
@@ -267,7 +279,7 @@ public class SqliteRobotRegistry : IRobotRegistry
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = """
-                              SELECT blid, ip, port, password, created_utc, updated_utc
+                              SELECT blid, name, ip, port, password, created_utc, updated_utc
                               FROM robots
                               WHERE blid = $blid;
                               """;
@@ -285,12 +297,14 @@ public class SqliteRobotRegistry : IRobotRegistry
     private static RobotRecord ToRecord(SqliteDataReader reader)
     {
         var blid = reader.GetString(0);
-        var ip = reader.GetString(1);
-        var port = reader.GetInt32(2);
-        var password = reader.IsDBNull(3) ? null : reader.GetString(3);
+        var name = reader.GetString(1);
+        var ip = reader.GetString(2);
+        var port = reader.GetInt32(3);
+        var password = reader.IsDBNull(4) ? null : reader.GetString(4);
 
         return new RobotRecord(
             blid,
+            name,
             ip,
             port,
             !string.IsNullOrEmpty(password)
@@ -302,10 +316,11 @@ public class SqliteRobotRegistry : IRobotRegistry
         return new RobotRow(
             reader.GetString(0),
             reader.GetString(1),
-            reader.GetInt32(2),
-            reader.IsDBNull(3) ? null : reader.GetString(3),
-            reader.IsDBNull(4) ? (DateTime?)null : ParseUtc(reader.GetString(4)),
-            reader.IsDBNull(5) ? (DateTime?)null : ParseUtc(reader.GetString(5))
+            reader.GetString(2),
+            reader.GetInt32(3),
+            reader.IsDBNull(4) ? null : reader.GetString(4),
+            reader.IsDBNull(5) ? (DateTime?)null : ParseUtc(reader.GetString(5)),
+            reader.IsDBNull(6) ? (DateTime?)null : ParseUtc(reader.GetString(6))
         );
     }
 
@@ -321,6 +336,7 @@ public class SqliteRobotRegistry : IRobotRegistry
 
     private sealed record RobotRow(
         string Blid,
+        string Name,
         string Ip,
         int Port,
         string? PasswordEncrypted,
@@ -342,7 +358,7 @@ public class SqliteRobotRegistry : IRobotRegistry
 
         var expected = new[]
         {
-            "blid", "ip", "port", "password", "created_utc", "updated_utc"
+            "blid", "name", "ip", "port", "password", "created_utc", "updated_utc"
         };
 
         if (columns.Count == 0)
@@ -351,6 +367,7 @@ public class SqliteRobotRegistry : IRobotRegistry
             create.CommandText = """
                                  CREATE TABLE robots (
                                      blid TEXT PRIMARY KEY,
+                                     name TEXT NOT NULL,
                                      ip TEXT NOT NULL,
                                      port INTEGER NOT NULL,
                                      password TEXT,
@@ -373,14 +390,15 @@ public class SqliteRobotRegistry : IRobotRegistry
         migrate.CommandText = """
                               CREATE TABLE robots_new (
                                   blid TEXT PRIMARY KEY,
+                                  name TEXT NOT NULL,
                                   ip TEXT NOT NULL,
                                   port INTEGER NOT NULL,
                                   password TEXT,
                                   created_utc TEXT,
                                   updated_utc TEXT
                               );
-                              INSERT INTO robots_new (blid, ip, port, password, created_utc, updated_utc)
-                              SELECT blid, ip, port, password, created_utc, updated_utc FROM robots;
+                              INSERT INTO robots_new (blid, name, ip, port, password, created_utc, updated_utc)
+                              SELECT blid, blid, ip, port, password, created_utc, updated_utc FROM robots;
                               DROP TABLE robots;
                               ALTER TABLE robots_new RENAME TO robots;
                               """;
