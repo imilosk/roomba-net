@@ -102,6 +102,10 @@ public class RoombaStatusManager
                     cancellationToken
                 );
 
+                // Ask the robot to emit its full shadow now so snapshots are complete quickly
+                // (it only pushes the full shadow periodically otherwise).
+                await client.ConnectionManager.RequestShadow(cancellationToken);
+
                 state.IsSubscribed = true;
                 _logger.LogInformation("Subscribed to Roomba status for {RobotId}", robotId);
             }
@@ -116,17 +120,27 @@ public class RoombaStatusManager
 
     private void ProcessMessage(RobotStatusState state, MqttApplicationMessageReceivedEventArgs messageEvent)
     {
-        var payload = messageEvent.ApplicationMessage.ConvertPayloadToString();
+        var payload = messageEvent.ApplicationMessage.ConvertPayloadToString() ?? string.Empty;
         var timestamp = _timeProvider.GetUtcNow().DateTime;
 
-        var lastStateJson = WrapStateForMerging(state.LastStatusUpdate.State);
-        var mergedPayload = DeepMergeJson(lastStateJson, payload);
+        try
+        {
+            var lastStateJson = WrapStateForMerging(state.LastStatusUpdate.State);
+            var mergedPayload = DeepMergeJson(lastStateJson, payload);
 
-        var updatedState = UnwrapStateFromJson(mergedPayload);
-        var statusUpdate = new RoombaStatusUpdate(updatedState, timestamp);
+            var updatedState = UnwrapStateFromJson(mergedPayload);
+            var statusUpdate = new RoombaStatusUpdate(updatedState, timestamp);
 
-        state.LastStatusUpdate = statusUpdate;
-        state.UpdatesChannel.Writer.TryWrite(statusUpdate);
+            state.LastStatusUpdate = statusUpdate;
+            state.UpdatesChannel.Writer.TryWrite(statusUpdate);
+        }
+        catch (Exception ex)
+        {
+            // A single unmappable field must not drop the whole shadow and leave the
+            // snapshot permanently partial. Log it and keep the last good state.
+            _logger.LogWarning(ex, "Failed to merge status message on topic {Topic}; keeping last known state",
+                messageEvent.ApplicationMessage.Topic);
+        }
     }
 
     private static string WrapStateForMerging(RoombaState state)

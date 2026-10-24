@@ -1,20 +1,24 @@
 using System.CommandLine;
 using System.Text.Json.Nodes;
 using RoombaNet.Core;
+using RoombaNet.Transport.Mqtt;
 
 namespace RoombaNet.Cli.Commands;
 
 public class StatusCommand : Command
 {
     private readonly IRoombaSubscriptionService _subscriber;
+    private readonly IRoombaConnectionManager _connectionManager;
     private readonly CancellationToken _cancellationToken;
 
     public StatusCommand(
         IRoombaSubscriptionService subscriber,
+        IRoombaConnectionManager connectionManager,
         CancellationToken cancellationToken = default
     ) : base("status", "Print a one-shot status snapshot and exit")
     {
         _subscriber = subscriber;
+        _connectionManager = connectionManager;
         _cancellationToken = cancellationToken;
         Aliases.Add("state");
         SetAction(async _ => await PrintStatus());
@@ -26,7 +30,8 @@ public class StatusCommand : Command
 
         var state = await StateReader.ReadState(
             _subscriber,
-            s => s.ContainsKey("batPct") && s.ContainsKey("cleanMissionStatus"),
+            _connectionManager,
+            s => s.ContainsKey("batPct") && s.ContainsKey("bin"),
             TimeSpan.FromSeconds(6),
             _cancellationToken);
 

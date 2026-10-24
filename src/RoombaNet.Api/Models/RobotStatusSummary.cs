@@ -18,7 +18,12 @@ public record RobotStatusSummary(
     string? ErrorMessage,
     int? NotReadyCode,
     int? MinutesIntoMission,
-    int? MapCount
+    int? MapCount,
+    bool? BinPresent,
+    bool? BinFull,
+    int? WifiRssi,
+    int? WifiSnr,
+    bool? DockKnown
 )
 {
     public static RobotStatusSummary From(string robotId, RoombaState state)
@@ -56,7 +61,12 @@ public record RobotStatusSummary(
             ErrorMessage: hasError ? DescribeError(error!.Value) : null,
             NotReadyCode: hasNotReady ? notReady : null,
             MinutesIntoMission: m?.MssnM,
-            MapCount: mapCount
+            MapCount: mapCount,
+            BinPresent: state.Bin?.Present,
+            BinFull: state.Bin?.Full,
+            WifiRssi: state.Signal?.Rssi,
+            WifiSnr: state.Signal?.Snr,
+            DockKnown: state.Dock?.Known
         );
     }
 

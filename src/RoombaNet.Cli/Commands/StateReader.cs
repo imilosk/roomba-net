@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using MQTTnet;
 using RoombaNet.Core;
+using RoombaNet.Transport.Mqtt;
 
 namespace RoombaNet.Cli.Commands;
 
@@ -14,6 +15,7 @@ public static class StateReader
 {
     public static async Task<JsonObject> ReadState(
         IRoombaSubscriptionService subscriber,
+        IRoombaConnectionManager connectionManager,
         Func<JsonObject, bool> isComplete,
         TimeSpan timeout,
         CancellationToken cancellationToken)
@@ -57,6 +59,9 @@ public static class StateReader
                 // Ignore non-JSON messages.
             }
         }, cancellationToken);
+
+        // Ask the robot to emit its full shadow now (it only pushes it periodically otherwise).
+        await connectionManager.RequestShadow(cancellationToken);
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(timeout);

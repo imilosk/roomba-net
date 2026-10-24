@@ -87,6 +87,30 @@ public class RoombaConnectionManager : IRoombaConnectionManager
             .Build();
     }
 
+    public async Task RequestShadow(CancellationToken cancellationToken = default)
+    {
+        var client = await GetClient(cancellationToken);
+        var shadowRoot = $"$aws/things/{_roombaSettings.Blid}/shadow";
+
+        // A "#" subscription does not deliver reserved $-topics, so subscribe to the shadow
+        // tree explicitly to receive the full shadow and the get/accepted response.
+        var subscribeOptions = _mqttClientFactory.CreateSubscribeOptionsBuilder()
+            .WithTopicFilter(f => f
+                .WithTopic($"{shadowRoot}/#")
+                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce))
+            .Build();
+        await client.SubscribeAsync(subscribeOptions, cancellationToken);
+
+        var message = new MqttApplicationMessageBuilder()
+            .WithTopic($"{shadowRoot}/get")
+            .WithPayload(Array.Empty<byte>())
+            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtMostOnce)
+            .Build();
+
+        await client.PublishAsync(message, cancellationToken);
+        _logger.LogDebug("Subscribed to {Root}/# and requested full shadow", shadowRoot);
+    }
+
     public MqttClientSubscribeOptions CreateMqttSubscribeOptions(string topic)
     {
         return _mqttClientFactory.CreateSubscribeOptionsBuilder()

@@ -1,5 +1,6 @@
 using RoombaNet.Core;
 using RoombaNet.Settings.Settings;
+using RoombaNet.Transport.Mqtt;
 using Command = System.CommandLine.Command;
 
 
@@ -14,6 +15,7 @@ public class CliCommandBuilder
     private readonly IRoombaWifiService _roombaWifiClient;
     private readonly IRoombaPasswordService _roombaPasswordService;
     private readonly IRoombaDiscoveryService _roombaDiscoveryService;
+    private readonly IRoombaConnectionManager _connectionManager;
     private readonly RoombaSettings _roombaSettings;
 
     public CliCommandBuilder(
@@ -24,6 +26,7 @@ public class CliCommandBuilder
         IRoombaWifiService roombaWifiClient,
         IRoombaPasswordService roombaPasswordService,
         IRoombaDiscoveryService roombaDiscoveryService,
+        IRoombaConnectionManager connectionManager,
         RoombaSettings roombaSettings
     )
     {
@@ -34,6 +37,7 @@ public class CliCommandBuilder
         _roombaWifiClient = roombaWifiClient;
         _roombaPasswordService = roombaPasswordService;
         _roombaDiscoveryService = roombaDiscoveryService;
+        _connectionManager = connectionManager;
         _roombaSettings = roombaSettings;
     }
 
@@ -42,10 +46,10 @@ public class CliCommandBuilder
         return
         [
             new SubscribeCommand(_roombaSubscriber, cancellationToken),
-            new StatusCommand(_roombaSubscriber, cancellationToken),
+            new StatusCommand(_roombaSubscriber, _connectionManager, cancellationToken),
             new ExecuteCommand(_roombaCommandClient, cancellationToken),
             new SettingCommand(_roombaSettingsClient, cancellationToken),
-            new MapsCommand(_roombaMapClient, _roombaSubscriber, cancellationToken),
+            new MapsCommand(_roombaMapClient, _roombaSubscriber, _connectionManager, cancellationToken),
             new CleanRegionsCommand(_roombaCommandClient, cancellationToken),
             new GetCommand(_roombaPasswordService, cancellationToken),
             new SetPasswordCommand(_roombaPasswordService, _roombaSettings, cancellationToken),

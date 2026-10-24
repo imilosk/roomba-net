@@ -1,6 +1,7 @@
 using System.CommandLine;
 using System.Text.Json.Nodes;
 using RoombaNet.Core;
+using RoombaNet.Transport.Mqtt;
 
 namespace RoombaNet.Cli.Commands;
 
@@ -8,16 +9,19 @@ public class MapsCommand : Command
 {
     private readonly IRoombaMapService _mapService;
     private readonly IRoombaSubscriptionService _subscriber;
+    private readonly IRoombaConnectionManager _connectionManager;
     private readonly CancellationToken _cancellationToken;
 
     public MapsCommand(
         IRoombaMapService mapService,
         IRoombaSubscriptionService subscriber,
+        IRoombaConnectionManager connectionManager,
         CancellationToken cancellationToken = default
     ) : base("maps", "Manage persistent maps")
     {
         _mapService = mapService;
         _subscriber = subscriber;
+        _connectionManager = connectionManager;
         _cancellationToken = cancellationToken;
 
         var listCommand = new Command("list", "List persistent maps stored on the robot");
@@ -45,6 +49,7 @@ public class MapsCommand : Command
 
         var state = await StateReader.ReadState(
             _subscriber,
+            _connectionManager,
             s => s.ContainsKey("pmaps"),
             TimeSpan.FromSeconds(8),
             _cancellationToken);
