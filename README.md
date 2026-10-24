@@ -39,11 +39,13 @@ Based on MQTT protocol support, the following models should work but are unteste
 ## 🌟 Features
 
 ### Core Capabilities
-- **CLI Tool**
-- **RESTful API**
+- **CLI Tool** — full local control from the terminal (AOT-compiled, single binary)
+- **RESTful API** — OpenAPI/Scalar documented
+- **MCP Server** — control the Roomba from any AI assistant (Claude, etc.) over the Model Context Protocol
 - **Real-time Status Streaming**: Server-Sent Events (SSE) for live status updates
+- **Map Management**: list and clear persistent maps, clean specific rooms/zones
 - **Local Communication**: Direct MQTT connection to your Roomba
-- **Privacy-Focused**: All communication stays on your local network
+- **Privacy-Focused**: All communication stays on your local network — **no cloud, ever**
 
 ### Supported Commands
 - `find` - Make the Roomba beep to locate it
@@ -52,9 +54,27 @@ Based on MQTT protocol support, the following models should work but are unteste
 - `pause` - Pause the cleaning mission
 - `resume` - Resume a paused mission
 - `dock` - Return to charging dock
-- `evac` - Empty bin into Clean Base (models with auto-evacuation only)
+- `evac` / `stopevac` - Empty bin into Clean Base / stop evacuation (auto-evacuation models only)
 - `reset` - Reset Roomba to factory settings
 - `train` - Start a training run for mapping
+- `spot` - Spot clean
+- `wake` / `sleep` / `off` - Power management
+- `tidy` - Tidy-up clean
+- `skip` - Skip the current area/room
+- `wlapon` / `wlapoff` - Turn the Wi-Fi radio on/off
+- `raw <command>` - Send any other device-specific command (e.g. `washpad`, `drypad`, `flushsluice`)
+
+### Maps & Region Cleaning
+- List persistent maps (pmaps) stored on the robot
+- **Clear all maps** to force a fresh remap — fully local, no cloud
+- Clean specific rooms/zones within a map
+
+### Settings
+- Child lock, bin pause, edge cleaning
+- Cleaning passes (one / two / auto)
+- Cleaning power (eco / auto carpet-boost / performance)
+- Rename the robot
+- Braava: mopping overlap, liquid amount, charging light pattern
 
 ## 🚀 Getting Started
 
@@ -189,8 +209,27 @@ dotnet run --project src/RoombaNet.Cli subscribe
 # Get current settings
 dotnet run --project src/RoombaNet.Cli get
 
-# Change settings (e.g., enable two-pass cleaning)
-dotnet run --project src/RoombaNet.Cli setting twoPass true
+# One-shot status snapshot (battery, phase, bin, position, map count)
+dotnet run --project src/RoombaNet.Cli status
+
+# Commands: spot clean, tidy, skip a room, power off, toggle Wi-Fi radio
+dotnet run --project src/RoombaNet.Cli command spot
+dotnet run --project src/RoombaNet.Cli command skip
+dotnet run --project src/RoombaNet.Cli command wifi-off
+# Send any raw command
+dotnet run --project src/RoombaNet.Cli command raw washpad
+
+# Maps: list, and clear all (local-only — forces a fresh remap)
+dotnet run --project src/RoombaNet.Cli maps list
+dotnet run --project src/RoombaNet.Cli maps clear
+
+# Clean specific rooms/zones in a map
+dotnet run --project src/RoombaNet.Cli clean-regions --pmap <pmap_id> --regions 1 3 5
+
+# Settings: cleaning power (0 eco / 1 auto / 2 performance), edge clean, rename
+dotnet run --project src/RoombaNet.Cli setting cleaningpower 2
+dotnet run --project src/RoombaNet.Cli setting edgeclean on
+dotnet run --project src/RoombaNet.Cli setting name "Dusty"
 
 # Get help and see all available commands
 dotnet run --project src/RoombaNet.Cli --help
@@ -344,12 +383,63 @@ curl -X POST "http://localhost:8080/api/roomba/wifi/configure?robotId={blid}" \
 
 #### Real-time Status Streaming
 ```bash
+# Current status snapshot (battery, mission, bin, position, map count)
+curl "http://localhost:8080/api/roomba/status?robotId={blid}"
+
 # Stream live status updates (Server-Sent Events)
 curl "http://localhost:8080/api/roomba/status/stream?robotId={blid}"
 
 # Get health check
 curl http://localhost:8080/api/roomba/health
 ```
+
+#### Maps & Region Cleaning
+```bash
+# List persistent maps
+curl "http://localhost:8080/api/roomba/maps?robotId={blid}"
+
+# Delete ALL maps (local-only; the robot remaps on its next run)
+curl -X DELETE "http://localhost:8080/api/roomba/maps?robotId={blid}"
+
+# Clean specific rooms/zones within a map
+curl -X POST "http://localhost:8080/api/roomba/clean-regions?robotId={blid}" \
+  -H "Content-Type: application/json" \
+  -d '{"pmapId":"<pmap_id>","regions":[{"regionId":"1","type":"rid"},{"regionId":"3","type":"rid"}]}'
+```
+
+## 🧠 AI Control (MCP Server)
+
+`RoombaNet.Mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server that lets an
+AI assistant (Claude Desktop, Claude Code, etc.) control your Roomba in natural language. It bridges
+to the REST API over your local network — **no cloud involved**.
+
+### Run it
+
+1. Start the API (it must be reachable from the MCP server):
+   ```bash
+   dotnet run --project src/RoombaNet.Api   # serves on http://localhost:5264 by default
+   ```
+2. Register the MCP server with your AI client. Example for Claude Desktop / Claude Code
+   (`claude_desktop_config.json` or `.mcp.json`):
+   ```json
+   {
+     "mcpServers": {
+       "roomba": {
+         "command": "dotnet",
+         "args": ["run", "--project", "/absolute/path/to/RoombaNet/src/RoombaNet.Mcp"],
+         "env": { "ROOMBANET_API_URL": "http://localhost:5264" }
+       }
+     }
+   }
+   ```
+   (Or build once and point `command` at the published `RoombaNet.Mcp` binary.)
+
+### Available tools
+`list_robots`, `discover_robots`, `get_status`, `start_cleaning`, `stop_cleaning`, `pause_cleaning`,
+`resume_cleaning`, `dock`, `find`, `evacuate_bin`, `send_command`, `list_maps`, `clear_maps`,
+`clean_regions`, `set_cleaning_power`, `set_cleaning_passes`, `set_child_lock`.
+
+Then just ask: *"Send the Roomba to clean the kitchen and living room, then dock."*
 
 ## 📋 Roadmap
 
@@ -359,22 +449,24 @@ curl http://localhost:8080/api/roomba/health
 - [x] Message subscription and monitoring
 - [x] RESTful API
 - [x] Real-time status streaming (SSE)
+- [x] One-shot status snapshot (CLI `status` / `GET /status`)
 - [x] Batch command execution
-- [x] Settings management
+- [x] Settings management (child lock, bin pause, passes, power, edge, name, Braava)
+- [x] Map management: list + clear persistent maps (local, no cloud)
+- [x] Room-specific / zone cleaning
+- [x] MCP server for AI assistant control
 - [x] Docker container support
 - [x] Multi-robot support
 
 ### In Progress 🚧
 - [ ] Web UI for browser-based control (https://github.com/imilosk/roomba-net-ui)
-- [ ] API documentation (Swagger/OpenAPI)
 - [ ] Unit and integration tests
 
 ### Planned 📝
-- [ ] Room-specific cleaning
-- [ ] Zone cleaning support
 - [ ] Keep-out zone management
 - [ ] Cleaning history and analytics
 - [ ] Schedule management UI
+- [ ] Home Assistant MQTT-discovery bridge
 
 ## 🤝 Contributing
 

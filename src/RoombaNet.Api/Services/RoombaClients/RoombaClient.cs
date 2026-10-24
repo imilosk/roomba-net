@@ -11,6 +11,7 @@ public sealed class RoombaClient : IAsyncDisposable, IDisposable
         RoombaSettings settings,
         IRoombaCommandService commandService,
         IRoombaSettingsService settingsService,
+        IRoombaMapService mapService,
         IRoombaSubscriptionService subscriptionService,
         IRoombaConnectionManager connectionManager)
     {
@@ -18,6 +19,7 @@ public sealed class RoombaClient : IAsyncDisposable, IDisposable
         Settings = settings;
         Commands = commandService;
         SettingsService = settingsService;
+        Maps = mapService;
         Subscriptions = subscriptionService;
         ConnectionManager = connectionManager;
         LastUsedUtc = DateTime.UtcNow;
@@ -27,6 +29,7 @@ public sealed class RoombaClient : IAsyncDisposable, IDisposable
     public RoombaSettings Settings { get; }
     public IRoombaCommandService Commands { get; }
     public IRoombaSettingsService SettingsService { get; }
+    public IRoombaMapService Maps { get; }
     public IRoombaSubscriptionService Subscriptions { get; }
     public IRoombaConnectionManager ConnectionManager { get; }
     public DateTime LastUsedUtc { get; private set; }

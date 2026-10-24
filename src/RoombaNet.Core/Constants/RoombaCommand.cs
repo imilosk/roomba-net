@@ -12,4 +12,14 @@ internal static class RoombaCommand
     public static readonly string Off = nameof(Off).ToLowerInvariant();
     public static readonly string Reset = nameof(Reset).ToLowerInvariant();
     public static readonly string Train = nameof(Train).ToLowerInvariant();
+
+    // Additional first-class commands supported by Wi-Fi iRobot devices.
+    public static readonly string Spot = nameof(Spot).ToLowerInvariant();
+    public static readonly string Wake = nameof(Wake).ToLowerInvariant();
+    public static readonly string Sleep = nameof(Sleep).ToLowerInvariant();
+    public static readonly string Tidy = nameof(Tidy).ToLowerInvariant();
+    public static readonly string Skip = nameof(Skip).ToLowerInvariant();
+    public static readonly string StopEvac = "stopevac";
+    public static readonly string WifiOn = "wlapon";
+    public static readonly string WifiOff = "wlapoff";
 }

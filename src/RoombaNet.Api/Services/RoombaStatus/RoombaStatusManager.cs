@@ -35,6 +35,39 @@ public class RoombaStatusManager
         return new RoombaStatusSubscription(state.LastStatusUpdate, state.UpdatesChannel.Reader);
     }
 
+    /// <summary>
+    /// Returns the latest known robot state, waiting up to <paramref name="timeout"/> for the
+    /// first status message if none has been received yet.
+    /// </summary>
+    public async Task<RoombaState> GetCurrentState(
+        string robotId,
+        TimeSpan timeout,
+        CancellationToken cancellationToken = default)
+    {
+        var subscription = await GetSubscription(robotId, cancellationToken);
+        if (subscription.LastStatus.Timestamp != DateTime.MinValue)
+        {
+            return subscription.LastStatus.State;
+        }
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(timeout);
+
+        try
+        {
+            await foreach (var update in subscription.Updates.ReadAllAsync(cts.Token))
+            {
+                return update.State;
+            }
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("Timed out waiting for first status update from {RobotId}", robotId);
+        }
+
+        return subscription.LastStatus.State;
+    }
+
     private async Task<RobotStatusState> EnsureSubscribed(string robotId, CancellationToken cancellationToken)
     {
         RobotStatusState state;

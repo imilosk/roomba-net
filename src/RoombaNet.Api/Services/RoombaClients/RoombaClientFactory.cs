@@ -102,6 +102,12 @@ public class RoombaClientFactory : IRoombaClientFactory
             publisher
         );
 
+        var mapService = new RoombaMapService(
+            _loggerFactory.CreateLogger<RoombaMapService>(),
+            connectionManager,
+            publisher
+        );
+
         var subscriptionService = new RoombaSubscriptionService(
             connectionManager,
             _loggerFactory.CreateLogger<RoombaSubscriptionService>()
@@ -112,6 +118,7 @@ public class RoombaClientFactory : IRoombaClientFactory
             settings,
             commandService,
             settingsService,
+            mapService,
             subscriptionService,
             connectionManager
         );

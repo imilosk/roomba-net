@@ -9,4 +9,11 @@ public static class RoombaSetting
     public const string RankOverlap = "rankOverlap";
     public const string PadWetness = "padWetness";
     public const string ChargingLightPattern = "chrgLrPtrn";
+    public const string CarpetBoost = "carpetBoost";
+    public const string VacHigh = "vacHigh";
+    public const string OpenOnly = "openOnly";
+    public const string Name = "name";
+
+    // Persistent maps live in the device shadow; publishing an empty array clears them.
+    public const string Pmaps = "pmaps";
 }

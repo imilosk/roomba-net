@@ -3,6 +3,7 @@ using RoombaNet.Api.Services.RoombaClients;
 using MQTTnet;
 using RoombaNet.Core;
 using RoombaNet.Core.Constants;
+using RoombaNet.Core.Payloads;
 using RoombaNet.Core.WifiConfig;
 using RoombaNet.Settings.Settings;
 
@@ -20,6 +21,7 @@ public class RoombaApiService
     private static readonly string[] AvailableCommands =
     [
         "find", "start", "stop", "pause", "resume", "dock", "evac", "reset", "train",
+        "spot", "wake", "sleep", "off", "tidy", "skip", "stopevac", "wlapon", "wlapoff",
     ];
 
     public RoombaApiService(
@@ -237,38 +239,9 @@ public class RoombaApiService
         string command,
         CancellationToken cancellationToken)
     {
-        switch (command.ToLowerInvariant())
-        {
-            case "find":
-                await commandService.Find(cancellationToken);
-                break;
-            case "start":
-                await commandService.Start(cancellationToken);
-                break;
-            case "stop":
-                await commandService.Stop(cancellationToken);
-                break;
-            case "pause":
-                await commandService.Pause(cancellationToken);
-                break;
-            case "resume":
-                await commandService.Resume(cancellationToken);
-                break;
-            case "dock":
-                await commandService.Dock(cancellationToken);
-                break;
-            case "evac":
-                await commandService.Evac(cancellationToken);
-                break;
-            case "reset":
-                await commandService.Reset(cancellationToken);
-                break;
-            case "train":
-                await commandService.Train(cancellationToken);
-                break;
-            default:
-                throw new ArgumentException($"Unknown command: {command}");
-        }
+        // All simple commands publish the same {command,time,initiator} shape to the `cmd`
+        // topic, so route them through the generic Send rather than a per-command switch.
+        await commandService.Send(command.ToLowerInvariant(), cancellationToken);
     }
 
     private static bool IsValidCommand(string command)
@@ -751,6 +724,183 @@ public class RoombaApiService
                 Error: ex.GetType().Name,
                 Details: ex.Message
             );
+        }
+    }
+
+    public async Task<CommandResponse> SendRawCommandAsync(
+        string command,
+        string robotId,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        if (string.IsNullOrWhiteSpace(command))
+        {
+            return new CommandResponse(false, command, "Command must not be empty", timestamp, executionId,
+                "InvalidCommand");
+        }
+
+        try
+        {
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.Commands.Send(command, cancellationToken);
+
+            return new CommandResponse(true, command, $"Command '{command}' sent successfully", timestamp, executionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send raw command '{Command}'", command);
+            return new CommandResponse(false, command, $"Failed to send command '{command}'", timestamp, executionId,
+                ex.GetType().Name, ex.Message);
+        }
+    }
+
+    public async Task<CommandResponse> CleanRegionsAsync(
+        CleanRegionsRequest request,
+        string robotId,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            if (request.Regions is null || request.Regions.Count == 0)
+            {
+                return new CommandResponse(false, "clean-regions", "At least one region is required", timestamp,
+                    executionId, "InvalidRequest");
+            }
+
+            var regions = request.Regions
+                .Select(r => new Region { RegionId = r.RegionId, Type = string.IsNullOrWhiteSpace(r.Type) ? "rid" : r.Type })
+                .ToList();
+
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.Commands.CleanRegions(
+                request.PmapId,
+                regions,
+                request.UserPmapvId,
+                request.Ordered ?? true,
+                cancellationToken);
+
+            return new CommandResponse(true, "clean-regions",
+                $"Region clean started for {regions.Count} region(s)", timestamp, executionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to start region clean");
+            return new CommandResponse(false, "clean-regions", "Failed to start region clean", timestamp, executionId,
+                ex.GetType().Name, ex.Message);
+        }
+    }
+
+    public async Task<CommandResponse> ClearMapsAsync(
+        string robotId,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            var success = await client.Maps.ClearAllMaps(cancellationToken);
+
+            return success
+                ? new CommandResponse(true, "clear-maps", "All persistent maps cleared", timestamp, executionId)
+                : new CommandResponse(false, "clear-maps", "Failed to clear maps", timestamp, executionId,
+                    "PublishFailed");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to clear maps");
+            return new CommandResponse(false, "clear-maps", "Failed to clear maps", timestamp, executionId,
+                ex.GetType().Name, ex.Message);
+        }
+    }
+
+    public async Task<SettingsResponse> SetCleaningPowerAsync(
+        int power,
+        string robotId,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            if (!Enum.IsDefined(typeof(RoombaCleaningPower), power))
+            {
+                return new SettingsResponse(false, "CleaningPower",
+                    $"Invalid cleaning power: {power}. Valid: 0 (Eco), 1 (Auto), 2 (Performance)",
+                    timestamp, executionId, "InvalidValue", "Valid values: 0, 1, 2");
+            }
+
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.SettingsService.SetCleaningPower((RoombaCleaningPower)power, cancellationToken);
+
+            return new SettingsResponse(true, "CleaningPower",
+                $"Cleaning power set to {(RoombaCleaningPower)power}", timestamp, executionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set cleaning power");
+            return new SettingsResponse(false, "CleaningPower", "Failed to set cleaning power", timestamp, executionId,
+                ex.GetType().Name, ex.Message);
+        }
+    }
+
+    public async Task<SettingsResponse> SetEdgeCleanAsync(
+        bool enable,
+        string robotId,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.SettingsService.SetEdgeClean(enable, cancellationToken);
+
+            return new SettingsResponse(true, "EdgeClean",
+                $"Edge cleaning {(enable ? "enabled" : "disabled")}", timestamp, executionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set edge clean");
+            return new SettingsResponse(false, "EdgeClean", "Failed to set edge clean", timestamp, executionId,
+                ex.GetType().Name, ex.Message);
+        }
+    }
+
+    public async Task<SettingsResponse> SetNameAsync(
+        string name,
+        string robotId,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return new SettingsResponse(false, "Name", "Name must not be empty", timestamp, executionId,
+                    "InvalidValue");
+            }
+
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.SettingsService.SetName(name, cancellationToken);
+
+            return new SettingsResponse(true, "Name", $"Robot renamed to '{name}'", timestamp, executionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set name");
+            return new SettingsResponse(false, "Name", "Failed to set name", timestamp, executionId,
+                ex.GetType().Name, ex.Message);
         }
     }
 }
