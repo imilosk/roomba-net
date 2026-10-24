@@ -1,5 +1,6 @@
 using RoombaNet.Api.Models;
 using RoombaNet.Api.Services.RoombaClients;
+using RoombaNet.Api.Services.RobotRegistry;
 using MQTTnet;
 using RoombaNet.Core;
 using RoombaNet.Core.Constants;
@@ -13,6 +14,7 @@ public class RoombaApiService
 {
     private readonly IRoombaDiscoveryService _discoveryService;
     private readonly IRoombaClientFactory _clientFactory;
+    private readonly IRobotRegistry _registry;
     private readonly MqttClientFactory _mqttClientFactory;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<RoombaApiService> _logger;
@@ -27,6 +29,7 @@ public class RoombaApiService
     public RoombaApiService(
         IRoombaClientFactory clientFactory,
         IRoombaDiscoveryService discoveryService,
+        IRobotRegistry registry,
         MqttClientFactory mqttClientFactory,
         ILoggerFactory loggerFactory,
         ILogger<RoombaApiService> logger,
@@ -34,6 +37,7 @@ public class RoombaApiService
     {
         _clientFactory = clientFactory;
         _discoveryService = discoveryService;
+        _registry = registry;
         _mqttClientFactory = mqttClientFactory;
         _loggerFactory = loggerFactory;
         _logger = logger;
@@ -172,15 +176,12 @@ public class RoombaApiService
     {
         try
         {
-            // We could implement a simple ping command or connection check here
-            // For now, we'll assume the service is healthy if we can create the response
-            _logger.LogInformation("Health check requested");
-
-            await Task.CompletedTask; // Simulate a health check operation)
+            // Real check: the registry (SQLite) must be reachable and queryable.
+            var robots = await _registry.GetAll(cancellationToken);
 
             return new HealthCheckResponse(
                 IsHealthy: true,
-                Status: "Healthy - Roomba service is operational",
+                Status: $"Healthy - registry reachable, {robots.Count} robot(s) registered",
                 Timestamp: _timeProvider.GetUtcNow().DateTime
             );
         }
@@ -190,10 +191,46 @@ public class RoombaApiService
 
             return new HealthCheckResponse(
                 IsHealthy: false,
-                Status: "Unhealthy - Roomba service is not operational",
+                Status: "Unhealthy - robot registry is not reachable",
                 Timestamp: _timeProvider.GetUtcNow().DateTime,
                 Error: ex.Message
             );
+        }
+    }
+
+    public async Task<CommandResponse> CancelAsync(
+        string robotId,
+        bool returnToDock,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+
+            // `stop` ends the mission (cycle -> none), which also cancels any pending
+            // recharge-and-resume so the robot will NOT restart after charging.
+            await client.Commands.Stop(cancellationToken);
+
+            if (returnToDock)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(2), cancellationToken);
+                await client.Commands.Dock(cancellationToken);
+            }
+
+            var message = returnToDock
+                ? "Mission cancelled; returning to dock. It will not auto-resume."
+                : "Mission cancelled. It will not auto-resume after charging.";
+
+            return new CommandResponse(true, "cancel", message, timestamp, executionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to cancel mission");
+            return new CommandResponse(false, "cancel", "Failed to cancel mission", timestamp, executionId,
+                ex.GetType().Name, ex.Message);
         }
     }
 

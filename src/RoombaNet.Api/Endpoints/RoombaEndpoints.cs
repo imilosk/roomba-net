@@ -237,6 +237,22 @@ public static class RoombaEndpoints
             .Produces<CommandResponse>()
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
 
+        group.MapPost("/cancel", async (
+                [FromQuery] string robotId,
+                [FromQuery] bool? dock,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.CancelAsync(robotId, dock ?? true, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("CancelMission")
+            .WithSummary("Cancel the current mission")
+            .WithDescription(
+                "Stops the current mission so it will NOT auto-resume after charging (sends stop, then docks unless dock=false).")
+            .Produces<CommandResponse>()
+            .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
+
         group.MapPost("/clean-regions", async (
                 [FromBody] CleanRegionsRequest request,
                 [FromQuery] string robotId,
@@ -489,6 +505,26 @@ public static class RoombaEndpoints
             .WithDescription(
                 "Returns the latest known device state (battery, mission, bin, position, etc.). Waits briefly for the first status if the connection was just opened.")
             .Produces<RoombaState>()
+            .Produces<string>(StatusCodes.Status400BadRequest);
+
+        group.MapGet("/summary", async (
+                [FromQuery] string robotId,
+                [FromServices] RoombaStatusManager statusManager,
+                CancellationToken cancellationToken) =>
+            {
+                if (string.IsNullOrWhiteSpace(robotId))
+                {
+                    return Results.BadRequest("robotId is required");
+                }
+
+                var state = await statusManager.GetCurrentState(robotId, TimeSpan.FromSeconds(8), cancellationToken);
+                return Results.Ok(RobotStatusSummary.From(robotId, state));
+            })
+            .WithName("GetRoombaStatusSummary")
+            .WithSummary("Get a human-readable status summary")
+            .WithDescription(
+                "Returns a compact, interpreted status (activity, charging, will-resume, errors) derived from the raw shadow. The raw snapshot stays available at GET /status.")
+            .Produces<RobotStatusSummary>()
             .Produces<string>(StatusCodes.Status400BadRequest);
 
         group.MapGet("/stream", async (

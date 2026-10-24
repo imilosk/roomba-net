@@ -35,37 +35,48 @@ public class RoombaStatusManager
         return new RoombaStatusSubscription(state.LastStatusUpdate, state.UpdatesChannel.Reader);
     }
 
+    // The robot streams its full shadow across several retained messages right after we
+    // subscribe. Wait a short settle window so they merge before returning a snapshot,
+    // otherwise the first read is partial (missing pmaps/bin/battery, etc.).
+    private static readonly TimeSpan SettleWindow = TimeSpan.FromMilliseconds(1800);
+    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
+
     /// <summary>
-    /// Returns the latest known robot state, waiting up to <paramref name="timeout"/> for the
-    /// first status message if none has been received yet.
+    /// Returns the latest known robot state. Waits up to <paramref name="timeout"/> for the first
+    /// status message if none has arrived yet, then a short settle window for the remaining
+    /// retained shadow messages to merge in. Reads the accumulated snapshot directly rather than
+    /// consuming the updates channel (which would steal events from SSE subscribers).
     /// </summary>
     public async Task<RoombaState> GetCurrentState(
         string robotId,
         TimeSpan timeout,
         CancellationToken cancellationToken = default)
     {
-        var subscription = await GetSubscription(robotId, cancellationToken);
-        if (subscription.LastStatus.Timestamp != DateTime.MinValue)
-        {
-            return subscription.LastStatus.State;
-        }
+        var state = await EnsureSubscribed(robotId, cancellationToken);
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(timeout);
 
         try
         {
-            await foreach (var update in subscription.Updates.ReadAllAsync(cts.Token))
+            // Wait until the first message has been received.
+            while (state.LastStatusUpdate.Timestamp == DateTime.MinValue)
             {
-                return update.State;
+                await Task.Delay(PollInterval, cts.Token);
             }
+
+            // Let the remaining retained shadow messages merge into the snapshot.
+            await Task.Delay(SettleWindow, cts.Token);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            _logger.LogWarning("Timed out waiting for first status update from {RobotId}", robotId);
+            if (state.LastStatusUpdate.Timestamp == DateTime.MinValue)
+            {
+                _logger.LogWarning("Timed out waiting for first status update from {RobotId}", robotId);
+            }
         }
 
-        return subscription.LastStatus.State;
+        return state.LastStatusUpdate.State;
     }
 
     private async Task<RobotStatusState> EnsureSubscribed(string robotId, CancellationToken cancellationToken)

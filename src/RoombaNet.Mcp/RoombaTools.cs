@@ -30,11 +30,18 @@ public class RoombaTools
         => _api.GetJson("/api/roomba/discovery", cancellationToken);
 
     [McpServerTool(Name = "get_status")]
-    [Description("Get a status snapshot for a robot: battery, mission phase/cycle, bin, position, map count.")]
+    [Description("Get the full raw status snapshot for a robot: battery, mission phase/cycle, bin, position, map count, etc.")]
     public Task<string> GetStatus(
         [Description("The robot's BLID / registry id")] string robotId,
         CancellationToken cancellationToken)
         => _api.GetJson($"/api/roomba/status{Q(robotId)}", cancellationToken);
+
+    [McpServerTool(Name = "get_status_summary")]
+    [Description("Get a compact, human-readable status: activity (cleaning/docked/returning-to-recharge/stuck/...), charging, will-resume, errors. Best for a quick check.")]
+    public Task<string> GetStatusSummary(
+        [Description("The robot's BLID / registry id")] string robotId,
+        CancellationToken cancellationToken)
+        => _api.GetJson($"/api/roomba/status/summary{Q(robotId)}", cancellationToken);
 
     [McpServerTool(Name = "start_cleaning")]
     [Description("Start a cleaning mission.")]
@@ -70,6 +77,13 @@ public class RoombaTools
         [Description("The robot's BLID / registry id")] string robotId,
         CancellationToken cancellationToken)
         => _api.PostJson($"/api/roomba/dock{Q(robotId)}", null, cancellationToken);
+
+    [McpServerTool(Name = "cancel_cleaning")]
+    [Description("Cancel the current mission so it will NOT auto-resume after charging (stops, then docks). Use this instead of pause when the user wants to fully stop.")]
+    public Task<string> Cancel(
+        [Description("The robot's BLID / registry id")] string robotId,
+        CancellationToken cancellationToken)
+        => _api.PostJson($"/api/roomba/cancel{Q(robotId)}", null, cancellationToken);
 
     [McpServerTool(Name = "find")]
     [Description("Play a sound so you can locate the robot.")]

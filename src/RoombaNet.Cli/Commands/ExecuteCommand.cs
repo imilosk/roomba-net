@@ -34,6 +34,7 @@ public class ExecuteCommand : Command
         AddSubcommand("tidy", "Tidy-up clean", ExecuteTidy);
         AddSubcommand("skip", "Skip the current area/room", ExecuteSkip);
         AddSubcommand("stopevac", "Stop bin evacuation", ExecuteStopEvac);
+        AddSubcommand("cancel", "Cancel the mission (stop + dock) so it won't auto-resume", ExecuteCancel);
         AddSubcommand("wifi-on", "Turn the Roomba Wi-Fi radio on", ExecuteWifiOn, "wlapon");
         AddSubcommand("wifi-off", "Turn the Roomba Wi-Fi radio off", ExecuteWifiOff, "wlapoff");
 
@@ -77,4 +78,12 @@ public class ExecuteCommand : Command
     private async Task ExecuteStopEvac() => await _roombaCommandClient.StopEvac(_cancellationToken);
     private async Task ExecuteWifiOn() => await _roombaCommandClient.WifiOn(_cancellationToken);
     private async Task ExecuteWifiOff() => await _roombaCommandClient.WifiOff(_cancellationToken);
+
+    private async Task ExecuteCancel()
+    {
+        // stop ends the mission (cycle -> none), cancelling any pending recharge-and-resume.
+        await _roombaCommandClient.Stop(_cancellationToken);
+        await Task.Delay(TimeSpan.FromSeconds(2), _cancellationToken);
+        await _roombaCommandClient.Dock(_cancellationToken);
+    }
 }
