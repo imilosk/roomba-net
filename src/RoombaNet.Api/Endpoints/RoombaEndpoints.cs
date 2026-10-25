@@ -30,12 +30,16 @@ public static class RoombaEndpoints
         var wifiGroup = app.MapGroup("/api/roomba/wifi")
             .WithTags("Roomba Robots");
 
+        var mapsGroup = app.MapGroup("/api/roomba/maps")
+            .WithTags("Roomba Maps");
+
         MapCommandEndpoints(commandsGroup);
         MapSettingsEndpoints(settingsGroup);
         MapStatusEndpoints(statusGroup);
         MapDiscoveryEndpoints(discoveryGroup);
         MapRobotRegistryEndpoints(robotsGroup);
         MapWifiEndpoints(wifiGroup);
+        MapMapsEndpoints(mapsGroup);
     }
 
     private static void MapCommandEndpoints(RouteGroupBuilder group)
@@ -232,6 +236,54 @@ public static class RoombaEndpoints
             .WithDescription("Start a training run to help the Roomba learn the space")
             .Produces<CommandResponse>()
             .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/cancel", async (
+                [FromQuery] string robotId,
+                [FromQuery] bool? dock,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.CancelAsync(robotId, dock ?? true, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("CancelMission")
+            .WithSummary("Cancel the current mission")
+            .WithDescription(
+                "Stops the current mission so it will NOT auto-resume after charging (sends stop, then docks unless dock=false).")
+            .Produces<CommandResponse>()
+            .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/clean-regions", async (
+                [FromBody] CleanRegionsRequest request,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.CleanRegionsAsync(request, robotId, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("CleanRegions")
+            .WithSummary("Clean specific regions/zones")
+            .WithDescription(
+                "Start a targeted clean of specific rooms or zones within a persistent map. Requires a pmap_id and at least one region.")
+            .Produces<CommandResponse>()
+            .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/commands/raw/{command}", async (
+                string command,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SendRawCommandAsync(command, robotId, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SendRawCommand")
+            .WithSummary("Send an arbitrary command")
+            .WithDescription(
+                "Publishes any command string to the device `cmd` topic. Use for device-specific commands not covered by a named endpoint (e.g. washpad, drypad, flushsluice).")
+            .Produces<CommandResponse>()
+            .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
     }
 
     private static void MapSettingsEndpoints(RouteGroupBuilder group)
@@ -349,6 +401,51 @@ public static class RoombaEndpoints
             .WithDescription("Set Braava chrgLrPtrn with a raw integer value: 0 (Docking & charging), 1 (Docking only), 2 (No status lights).")
             .Produces<SettingsResponse>()
             .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/cleaning-power", async (
+                [FromBody] CleaningPowerRequest request,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetCleaningPowerAsync(request.Power, robotId, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetCleaningPower")
+            .WithSummary("Set vacuum suction power")
+            .WithDescription("Set suction power: 0 (Eco), 1 (Auto carpet-boost), or 2 (Performance).")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/edge-clean", async (
+                [FromBody] EnableSettingRequest request,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetEdgeCleanAsync(request.Enable, robotId, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetEdgeClean")
+            .WithSummary("Set edge cleaning")
+            .WithDescription("Enable or disable edge/corner cleaning.")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/name", async (
+                [FromBody] SetNameRequest request,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetNameAsync(request.Name, robotId, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetRobotName")
+            .WithSummary("Rename the robot")
+            .WithDescription("Change the robot's display name.")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
     }
 
     private static List<string> GetAvailableSettings(RoombaState state)
@@ -390,6 +487,46 @@ public static class RoombaEndpoints
 
     private static void MapStatusEndpoints(RouteGroupBuilder group)
     {
+        group.MapGet("/", async (
+                [FromQuery] string robotId,
+                [FromServices] RoombaStatusManager statusManager,
+                CancellationToken cancellationToken) =>
+            {
+                if (string.IsNullOrWhiteSpace(robotId))
+                {
+                    return Results.BadRequest("robotId is required");
+                }
+
+                var state = await statusManager.GetCurrentState(robotId, TimeSpan.FromSeconds(8), cancellationToken);
+                return Results.Ok(state);
+            })
+            .WithName("GetRoombaStatus")
+            .WithSummary("Get the current Roomba status snapshot")
+            .WithDescription(
+                "Returns the latest known device state (battery, mission, bin, position, etc.). Waits briefly for the first status if the connection was just opened.")
+            .Produces<RoombaState>()
+            .Produces<string>(StatusCodes.Status400BadRequest);
+
+        group.MapGet("/summary", async (
+                [FromQuery] string robotId,
+                [FromServices] RoombaStatusManager statusManager,
+                CancellationToken cancellationToken) =>
+            {
+                if (string.IsNullOrWhiteSpace(robotId))
+                {
+                    return Results.BadRequest("robotId is required");
+                }
+
+                var state = await statusManager.GetCurrentState(robotId, TimeSpan.FromSeconds(8), cancellationToken);
+                return Results.Ok(RobotStatusSummary.From(robotId, state));
+            })
+            .WithName("GetRoombaStatusSummary")
+            .WithSummary("Get a human-readable status summary")
+            .WithDescription(
+                "Returns a compact, interpreted status (activity, charging, will-resume, errors) derived from the raw shadow. The raw snapshot stays available at GET /status.")
+            .Produces<RobotStatusSummary>()
+            .Produces<string>(StatusCodes.Status400BadRequest);
+
         group.MapGet("/stream", async (
                 [FromQuery] string robotId,
                 [FromServices] RoombaStatusManager statusManager,
@@ -696,5 +833,46 @@ public static class RoombaEndpoints
             .WithDescription("Configure Wi-Fi credentials while connected to the Roomba's access point.")
             .Produces<WifiConfigureResponse>()
             .Produces<WifiConfigureResponse>(StatusCodes.Status400BadRequest);
+    }
+
+    private static void MapMapsEndpoints(RouteGroupBuilder group)
+    {
+        group.MapGet("/", async (
+                [FromQuery] string robotId,
+                [FromServices] RoombaStatusManager statusManager,
+                CancellationToken cancellationToken) =>
+            {
+                if (string.IsNullOrWhiteSpace(robotId))
+                {
+                    return Results.BadRequest("robotId is required");
+                }
+
+                var state = await statusManager.GetCurrentState(robotId, TimeSpan.FromSeconds(8), cancellationToken);
+                var maps = (state.Pmaps ?? [])
+                    .SelectMany(m => m.Select(kv => new MapInfo(kv.Key, kv.Value)))
+                    .ToList();
+
+                return Results.Ok(new MapListResponse(robotId, maps));
+            })
+            .WithName("ListMaps")
+            .WithSummary("List persistent maps")
+            .WithDescription("Returns the persistent maps (pmaps) currently stored on the robot.")
+            .Produces<MapListResponse>()
+            .Produces<string>(StatusCodes.Status400BadRequest);
+
+        group.MapDelete("/", async (
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.ClearMapsAsync(robotId, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("ClearMaps")
+            .WithSummary("Delete all persistent maps")
+            .WithDescription(
+                "Clears every persistent map stored on the robot (local-only, no cloud). The robot builds a fresh map on its next mapping/clean run.")
+            .Produces<CommandResponse>()
+            .Produces<CommandResponse>(StatusCodes.Status400BadRequest);
     }
 }

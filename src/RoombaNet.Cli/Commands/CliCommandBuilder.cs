@@ -1,5 +1,6 @@
 using RoombaNet.Core;
 using RoombaNet.Settings.Settings;
+using RoombaNet.Transport.Mqtt;
 using Command = System.CommandLine.Command;
 
 
@@ -10,27 +11,33 @@ public class CliCommandBuilder
     private readonly IRoombaSubscriptionService _roombaSubscriber;
     private readonly IRoombaCommandService _roombaCommandClient;
     private readonly IRoombaSettingsService _roombaSettingsClient;
+    private readonly IRoombaMapService _roombaMapClient;
     private readonly IRoombaWifiService _roombaWifiClient;
     private readonly IRoombaPasswordService _roombaPasswordService;
     private readonly IRoombaDiscoveryService _roombaDiscoveryService;
+    private readonly IRoombaConnectionManager _connectionManager;
     private readonly RoombaSettings _roombaSettings;
 
     public CliCommandBuilder(
         IRoombaSubscriptionService roombaSubscriber,
         IRoombaCommandService roombaCommandClient,
         IRoombaSettingsService roombaSettingsClient,
+        IRoombaMapService roombaMapClient,
         IRoombaWifiService roombaWifiClient,
         IRoombaPasswordService roombaPasswordService,
         IRoombaDiscoveryService roombaDiscoveryService,
+        IRoombaConnectionManager connectionManager,
         RoombaSettings roombaSettings
     )
     {
         _roombaSubscriber = roombaSubscriber;
         _roombaCommandClient = roombaCommandClient;
         _roombaSettingsClient = roombaSettingsClient;
+        _roombaMapClient = roombaMapClient;
         _roombaWifiClient = roombaWifiClient;
         _roombaPasswordService = roombaPasswordService;
         _roombaDiscoveryService = roombaDiscoveryService;
+        _connectionManager = connectionManager;
         _roombaSettings = roombaSettings;
     }
 
@@ -39,8 +46,11 @@ public class CliCommandBuilder
         return
         [
             new SubscribeCommand(_roombaSubscriber, cancellationToken),
+            new StatusCommand(_roombaSubscriber, _connectionManager, cancellationToken),
             new ExecuteCommand(_roombaCommandClient, cancellationToken),
             new SettingCommand(_roombaSettingsClient, cancellationToken),
+            new MapsCommand(_roombaMapClient, _roombaSubscriber, _connectionManager, cancellationToken),
+            new CleanRegionsCommand(_roombaCommandClient, cancellationToken),
             new GetCommand(_roombaPasswordService, cancellationToken),
             new SetPasswordCommand(_roombaPasswordService, _roombaSettings, cancellationToken),
             new DiscoverCommand(_roombaDiscoveryService, cancellationToken),

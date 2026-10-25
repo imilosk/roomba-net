@@ -35,6 +35,50 @@ public class RoombaStatusManager
         return new RoombaStatusSubscription(state.LastStatusUpdate, state.UpdatesChannel.Reader);
     }
 
+    // The robot streams its full shadow across several retained messages right after we
+    // subscribe. Wait a short settle window so they merge before returning a snapshot,
+    // otherwise the first read is partial (missing pmaps/bin/battery, etc.).
+    private static readonly TimeSpan SettleWindow = TimeSpan.FromMilliseconds(1800);
+    private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(100);
+
+    /// <summary>
+    /// Returns the latest known robot state. Waits up to <paramref name="timeout"/> for the first
+    /// status message if none has arrived yet, then a short settle window for the remaining
+    /// retained shadow messages to merge in. Reads the accumulated snapshot directly rather than
+    /// consuming the updates channel (which would steal events from SSE subscribers).
+    /// </summary>
+    public async Task<RoombaState> GetCurrentState(
+        string robotId,
+        TimeSpan timeout,
+        CancellationToken cancellationToken = default)
+    {
+        var state = await EnsureSubscribed(robotId, cancellationToken);
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(timeout);
+
+        try
+        {
+            // Wait until the first message has been received.
+            while (state.LastStatusUpdate.Timestamp == DateTime.MinValue)
+            {
+                await Task.Delay(PollInterval, cts.Token);
+            }
+
+            // Let the remaining retained shadow messages merge into the snapshot.
+            await Task.Delay(SettleWindow, cts.Token);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            if (state.LastStatusUpdate.Timestamp == DateTime.MinValue)
+            {
+                _logger.LogWarning("Timed out waiting for first status update from {RobotId}", robotId);
+            }
+        }
+
+        return state.LastStatusUpdate.State;
+    }
+
     private async Task<RobotStatusState> EnsureSubscribed(string robotId, CancellationToken cancellationToken)
     {
         RobotStatusState state;
@@ -58,6 +102,10 @@ public class RoombaStatusManager
                     cancellationToken
                 );
 
+                // Ask the robot to emit its full shadow now so snapshots are complete quickly
+                // (it only pushes the full shadow periodically otherwise).
+                await client.ConnectionManager.RequestShadow(cancellationToken);
+
                 state.IsSubscribed = true;
                 _logger.LogInformation("Subscribed to Roomba status for {RobotId}", robotId);
             }
@@ -72,17 +120,27 @@ public class RoombaStatusManager
 
     private void ProcessMessage(RobotStatusState state, MqttApplicationMessageReceivedEventArgs messageEvent)
     {
-        var payload = messageEvent.ApplicationMessage.ConvertPayloadToString();
+        var payload = messageEvent.ApplicationMessage.ConvertPayloadToString() ?? string.Empty;
         var timestamp = _timeProvider.GetUtcNow().DateTime;
 
-        var lastStateJson = WrapStateForMerging(state.LastStatusUpdate.State);
-        var mergedPayload = DeepMergeJson(lastStateJson, payload);
+        try
+        {
+            var lastStateJson = WrapStateForMerging(state.LastStatusUpdate.State);
+            var mergedPayload = DeepMergeJson(lastStateJson, payload);
 
-        var updatedState = UnwrapStateFromJson(mergedPayload);
-        var statusUpdate = new RoombaStatusUpdate(updatedState, timestamp);
+            var updatedState = UnwrapStateFromJson(mergedPayload);
+            var statusUpdate = new RoombaStatusUpdate(updatedState, timestamp);
 
-        state.LastStatusUpdate = statusUpdate;
-        state.UpdatesChannel.Writer.TryWrite(statusUpdate);
+            state.LastStatusUpdate = statusUpdate;
+            state.UpdatesChannel.Writer.TryWrite(statusUpdate);
+        }
+        catch (Exception ex)
+        {
+            // A single unmappable field must not drop the whole shadow and leave the
+            // snapshot permanently partial. Log it and keep the last good state.
+            _logger.LogWarning(ex, "Failed to merge status message on topic {Topic}; keeping last known state",
+                messageEvent.ApplicationMessage.Topic);
+        }
     }
 
     private static string WrapStateForMerging(RoombaState state)

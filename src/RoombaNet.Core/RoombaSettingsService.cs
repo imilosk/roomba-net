@@ -77,6 +77,43 @@ public class RoombaSettingsService : IRoombaSettingsService
         return SetSetting(RoombaSetting.PadWetness, wetness, cancellationToken);
     }
 
+    public async Task SetCleaningPower(RoombaCleaningPower power, CancellationToken cancellationToken = default)
+    {
+        switch (power)
+        {
+            case RoombaCleaningPower.Eco:
+                await SetSetting(RoombaSetting.CarpetBoost, false, cancellationToken);
+                await SetSetting(RoombaSetting.VacHigh, false, cancellationToken);
+                break;
+            case RoombaCleaningPower.Auto:
+                await SetSetting(RoombaSetting.CarpetBoost, true, cancellationToken);
+                await SetSetting(RoombaSetting.VacHigh, false, cancellationToken);
+                break;
+            case RoombaCleaningPower.Performance:
+                await SetSetting(RoombaSetting.CarpetBoost, false, cancellationToken);
+                await SetSetting(RoombaSetting.VacHigh, true, cancellationToken);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(power), power, null);
+        }
+    }
+
+    public Task SetEdgeClean(bool enable, CancellationToken cancellationToken = default)
+    {
+        // openOnly=true means "open areas only" (edge cleaning OFF), so it is the inverse.
+        return SetSetting(RoombaSetting.OpenOnly, !enable, cancellationToken);
+    }
+
+    public Task SetName(string name, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Name must not be empty.", nameof(name));
+        }
+
+        return SetSetting(RoombaSetting.Name, name, cancellationToken);
+    }
+
     private async Task SetSetting<T>(
         string setting,
         T value,

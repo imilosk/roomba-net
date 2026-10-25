@@ -42,6 +42,7 @@ public static class Bootstrapper
         services.TryAddSingleton<IRoombaConnectionManager, RoombaConnectionManager>();
         services.TryAddSingleton<IRoombaCommandService, RoombaCommandService>();
         services.TryAddSingleton<IRoombaSettingsService, RoombaSettingsService>();
+        services.TryAddSingleton<IRoombaMapService, RoombaMapService>();
         services.TryAddSingleton<IRoombaSubscriptionService, RoombaSubscriptionService>();
         services.TryAddSingleton<IRoombaWifiService, RoombaWifiService>();
 

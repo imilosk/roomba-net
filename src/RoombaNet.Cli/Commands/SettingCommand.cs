@@ -19,14 +19,32 @@ public class SettingCommand : Command
 
         AddBooleanSubcommand("childlock", "Child/Pet Lock", SetChildLock);
         AddBooleanSubcommand("binpause", "Bin Pause", SetBinPause);
+        AddBooleanSubcommand("edgeclean", "Edge/corner cleaning", SetEdgeClean, "edge");
         AddEnumSubcommand<RoombaCleaningPasses>(
             "cleaningpasses",
             "Cleaning Passes",
             SetCleaningPasses,
             "pass"
         );
+        AddEnumSubcommand<RoombaCleaningPower>(
+            "cleaningpower",
+            "Vacuum suction power",
+            SetCleaningPower,
+            "power"
+        );
+        AddNameSubcommand();
 
         Aliases.Add("set");
+    }
+
+    private void AddNameSubcommand()
+    {
+        var command = new Command("name", "Rename the robot");
+        var nameArgument = new Argument<string>("value") { Description = "The new robot name" };
+        command.Arguments.Add(nameArgument);
+        command.SetAction(async parseResult =>
+            await _roombaSettingsClient.SetName(parseResult.GetValue(nameArgument)!, _cancellationToken));
+        Subcommands.Add(command);
     }
 
     private void AddBooleanSubcommand(
@@ -96,4 +114,10 @@ public class SettingCommand : Command
 
     private async Task SetCleaningPasses(RoombaCleaningPasses passes) =>
         await _roombaSettingsClient.CleaningPasses(passes, _cancellationToken);
+
+    private async Task SetEdgeClean(bool enable) =>
+        await _roombaSettingsClient.SetEdgeClean(enable, _cancellationToken);
+
+    private async Task SetCleaningPower(RoombaCleaningPower power) =>
+        await _roombaSettingsClient.SetCleaningPower(power, _cancellationToken);
 }
