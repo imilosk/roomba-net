@@ -31,9 +31,13 @@ public class StatusCommand : Command
         var state = await StateReader.ReadState(
             _subscriber,
             _connectionManager,
-            // Vacuums report a bin, Braavas a water tank instead.
-            s => s.ContainsKey("batPct") && (s.ContainsKey("bin") || s.ContainsKey("tankPresent")),
-            TimeSpan.FromSeconds(6),
+            // Vacuums report a bin, Braavas a water tank instead. Vacuums also push Wi-Fi
+            // "signal" on the wifistat topic shortly after; wait for it so the snapshot
+            // includes it. Braavas never report signal, so don't block on it for them.
+            s => s.ContainsKey("batPct")
+                 && (s.ContainsKey("bin") || s.ContainsKey("tankPresent"))
+                 && (!s.ContainsKey("bin") || s.ContainsKey("signal")),
+            TimeSpan.FromSeconds(8),
             _cancellationToken);
 
         if (state.Count == 0)
@@ -66,6 +70,14 @@ public class StatusCommand : Command
         {
             var point = pose["point"] as JsonObject;
             Console.WriteLine($"  {"Position",-16}: x={point?["x"]}, y={point?["y"]}, θ={pose["theta"]}");
+        }
+
+        var signal = state["signal"] as JsonObject;
+        if (signal is not null)
+        {
+            var rssi = GetInt(signal["rssi"]);
+            var snr = GetInt(signal["snr"]);
+            Console.WriteLine($"  {"Wi-Fi signal",-16}: {rssi} dBm (SNR {snr}){DescribeRssi(rssi)}");
         }
 
         var pmaps = state["pmaps"] as JsonArray;
@@ -129,6 +141,16 @@ public class StatusCommand : Command
             GetInt(state["batPct"]),
             notReadyCause);
     }
+
+    private static string DescribeRssi(int? rssi) => rssi switch
+    {
+        null => "",
+        >= -50 => " — excellent",
+        >= -60 => " — good",
+        >= -67 => " — fair",
+        >= -75 => " — weak",
+        _ => " — very weak",
+    };
 
     private static string? GetString(JsonNode? node) =>
         node is JsonValue value && value.TryGetValue<string>(out var result) ? result : null;

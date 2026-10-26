@@ -38,6 +38,18 @@ public class ExecuteCommand : Command
         AddSubcommand("wifi-on", "Turn the Roomba Wi-Fi radio on", ExecuteWifiOn, "wlapon");
         AddSubcommand("wifi-off", "Turn the Roomba Wi-Fi radio off", ExecuteWifiOff, "wlapoff");
 
+        // Braava dock/pad maintenance commands (first-class wrappers over the raw cmd strings).
+        AddRawSubcommand("washpad", "Braava: wash the cleaning pad");
+        AddRawSubcommand("stoppadwash", "Braava: stop washing the pad");
+        AddRawSubcommand("drypad", "Braava: dry the cleaning pad");
+        AddRawSubcommand("stoppaddry", "Braava: stop drying the pad");
+        AddRawSubcommand("flushsluice", "Braava: flush the water system");
+        AddRawSubcommand("flrefill", "Braava: refill the liquid tank");
+        AddRawSubcommand("stopflrefill", "Braava: stop refilling the tank");
+        AddRawSubcommand("spray", "Braava: activate the spray jet");
+        AddRawSubcommand("startvibrate", "Braava: start the vibration motor");
+        AddRawSubcommand("stopvibrate", "Braava: stop the vibration motor");
+
         var rawCommand = new Command("raw", "Send an arbitrary command string to the cmd topic");
         var commandArgument = new Argument<string>("command") { Description = "The raw command to send" };
         rawCommand.Arguments.Add(commandArgument);
@@ -45,6 +57,9 @@ public class ExecuteCommand : Command
             await _roombaCommandClient.Send(parseResult.GetValue(commandArgument)!, _cancellationToken));
         Subcommands.Add(rawCommand);
     }
+
+    private void AddRawSubcommand(string commandName, string description, params string[] aliases) =>
+        AddSubcommand(commandName, description, () => _roombaCommandClient.Send(commandName, _cancellationToken), aliases);
 
     private void AddSubcommand(string commandName, string description, Func<Task> handler, params string[] aliases)
     {
