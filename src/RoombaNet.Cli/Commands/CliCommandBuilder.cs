@@ -49,6 +49,7 @@ public class CliCommandBuilder
             new StatusCommand(_roombaSubscriber, _connectionManager, cancellationToken),
             new ExecuteCommand(_roombaCommandClient, cancellationToken),
             new SettingCommand(_roombaSettingsClient, cancellationToken),
+            new ScheduleCommand(_roombaSettingsClient, _roombaSubscriber, _connectionManager, cancellationToken),
             new MapsCommand(_roombaMapClient, _roombaSubscriber, _connectionManager, cancellationToken),
             new CleanRegionsCommand(_roombaCommandClient, cancellationToken),
             new GetCommand(_roombaPasswordService, cancellationToken),
