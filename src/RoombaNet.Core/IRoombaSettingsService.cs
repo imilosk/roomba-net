@@ -46,4 +46,15 @@ public interface IRoombaSettingsService
 
     /// <summary>Select the robot voice language (nested <c>langs2.sLang</c>, e.g. "en-US_1").</summary>
     Task SetLanguage(string languageCode, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Set the weekly cleaning schedule. Each list has 7 entries indexed by weekday
+    /// (0 = Sunday .. 6 = Saturday): <paramref name="cycle"/> is "start" or "none",
+    /// <paramref name="hours"/> 0-23, <paramref name="minutes"/> 0-59.
+    /// </summary>
+    Task SetSchedule(
+        IReadOnlyList<string> cycle,
+        IReadOnlyList<int> hours,
+        IReadOnlyList<int> minutes,
+        CancellationToken cancellationToken = default);
 }

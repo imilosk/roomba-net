@@ -178,6 +178,47 @@ public class RoombaSettingsService : IRoombaSettingsService
             cancellationToken);
     }
 
+    public Task SetSchedule(
+        IReadOnlyList<string> cycle,
+        IReadOnlyList<int> hours,
+        IReadOnlyList<int> minutes,
+        CancellationToken cancellationToken = default)
+    {
+        if (cycle.Count != 7 || hours.Count != 7 || minutes.Count != 7)
+        {
+            throw new ArgumentException("Schedule must have exactly 7 entries per field (Sun..Sat).");
+        }
+
+        // Group enabled days that share the same time into one cleanSchedule2 event.
+        var byTime = new Dictionary<(int, int), List<int>>();
+        for (var day = 0; day < 7; day++)
+        {
+            if (cycle[day] != "start")
+            {
+                continue;
+            }
+
+            var key = (hours[day], minutes[day]);
+            if (!byTime.TryGetValue(key, out var days))
+            {
+                days = [];
+                byTime[key] = days;
+            }
+
+            days.Add(day);
+        }
+
+        var events = byTime.Select(kv => new CleanScheduleEvent
+        {
+            Enabled = true,
+            Type = 0,
+            Start = new ScheduleStart { Day = [.. kv.Value], Hour = kv.Key.Item1, Min = kv.Key.Item2 },
+            Cmd = new ScheduleCmd { Command = "start", Ordered = 1 },
+        }).ToArray();
+
+        return SetSetting(RoombaSetting.Schedule, events, cancellationToken);
+    }
+
     private async Task SetSetting<T>(
         string setting,
         T value,
@@ -261,6 +302,11 @@ public class RoombaSettingsService : IRoombaSettingsService
         if (typeof(T) == typeof(LanguageSetting))
         {
             return (JsonTypeInfo<SettingPayload<T>>)(object)RoombaJsonContext.Default.SettingPayloadLanguageSetting;
+        }
+
+        if (typeof(T) == typeof(CleanScheduleEvent[]))
+        {
+            return (JsonTypeInfo<SettingPayload<T>>)(object)RoombaJsonContext.Default.SettingPayloadCleanScheduleEventArray;
         }
 
         throw new NotSupportedException(

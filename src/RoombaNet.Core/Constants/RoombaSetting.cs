@@ -45,4 +45,7 @@ public static class RoombaSetting
 
     /// <summary>Voice language selection (nested <c>langs2.sLang</c>).</summary>
     public const string Languages = "langs2";
+
+    /// <summary>Weekly cleaning schedule, modern event-array form (<c>cleanSchedule2</c>).</summary>
+    public const string Schedule = "cleanSchedule2";
 }
