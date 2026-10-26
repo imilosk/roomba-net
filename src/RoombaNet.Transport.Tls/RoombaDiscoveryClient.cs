@@ -21,6 +21,7 @@ public class RoombaDiscoveryClient : IRoombaDiscoveryClient
 
     public async Task<List<RoombaInfo>> DiscoverRoombas(
         int timeoutSeconds = 5,
+        IReadOnlyCollection<IPAddress>? targets = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -32,7 +33,7 @@ public class RoombaDiscoveryClient : IRoombaDiscoveryClient
 
         var listenTask = StartListeningForResponsesAsync(udpClient, discoveredRoombas, linkedCts.Token);
 
-        await SendBroadcastMessagesAsync(udpClient, linkedCts.Token);
+        await SendDiscoveryMessagesAsync(udpClient, targets ?? [], linkedCts.Token);
 
         await listenTask;
 
@@ -112,7 +113,10 @@ public class RoombaDiscoveryClient : IRoombaDiscoveryClient
         );
     }
 
-    private async Task SendBroadcastMessagesAsync(UdpClient udpClient, CancellationToken cancellationToken)
+    private async Task SendDiscoveryMessagesAsync(
+        UdpClient udpClient,
+        IReadOnlyCollection<IPAddress> targets,
+        CancellationToken cancellationToken)
     {
         var message = Encoding.UTF8.GetBytes(DiscoveryMessage);
         var broadcastEndpoint = new IPEndPoint(IPAddress.Broadcast, UdpPort);
@@ -124,6 +128,16 @@ public class RoombaDiscoveryClient : IRoombaDiscoveryClient
                 await udpClient.SendAsync(message, message.Length, broadcastEndpoint);
                 _logger.LogDebug("Broadcast message sent: {Count}", i + 1);
 
+                foreach (var target in targets)
+                {
+                    await SendUnicastAsync(udpClient, message, new IPEndPoint(target, UdpPort));
+                }
+
+                if (targets.Count > 0)
+                {
+                    _logger.LogDebug("Unicast message sent to {Count} target(s)", targets.Count);
+                }
+
                 if (i < BroadcastCount - 1)
                 {
                     await Task.Delay(DelayBetweenBroadcastsMs, cancellationToken);
@@ -133,6 +147,19 @@ public class RoombaDiscoveryClient : IRoombaDiscoveryClient
         catch (OperationCanceledException)
         {
             // Expected when timeout occurs
+        }
+    }
+
+    private async Task SendUnicastAsync(UdpClient udpClient, byte[] message, IPEndPoint endpoint)
+    {
+        try
+        {
+            await udpClient.SendAsync(message, message.Length, endpoint);
+        }
+        catch (SocketException ex)
+        {
+            // One unreachable address (e.g. no route) must not abort the rest of a range scan.
+            _logger.LogDebug("Unicast discovery to {Endpoint} failed: {Error}", endpoint, ex.SocketErrorCode);
         }
     }
 

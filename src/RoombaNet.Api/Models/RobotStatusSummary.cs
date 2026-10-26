@@ -1,3 +1,5 @@
+using RoombaNet.Core;
+
 namespace RoombaNet.Api.Models;
 
 /// <summary>
@@ -17,13 +19,20 @@ public record RobotStatusSummary(
     int? ErrorCode,
     string? ErrorMessage,
     int? NotReadyCode,
+    string? NotReadyCause,
     int? MinutesIntoMission,
     int? MapCount,
     bool? BinPresent,
     bool? BinFull,
     int? WifiRssi,
     int? WifiSnr,
-    bool? DockKnown
+    bool? DockKnown,
+    string? SoftwareVersion,
+    // Braava (mopping) fields; null on vacuums.
+    string? DetectedPad,
+    bool? TankPresent,
+    int? TankLevelPct,
+    bool? LidOpen
 )
 {
     public static RobotStatusSummary From(string robotId, RoombaState state)
@@ -39,13 +48,17 @@ public record RobotStatusSummary(
         var hasError = error is not (null or 0);
         var hasNotReady = notReady is not (null or 0);
         var charging = phase == "charge";
-        var cleaning = phase == "run" && cycle is "clean" or "quick" or "spot";
+        var cleaning = phase == "run" && RoombaStatusText.IsMissionActive(cycle);
         // A mission still mid-flight (cycle active) that is homing/charging will auto-resume.
-        var willResume = cycle is "clean" or "quick" or "spot"
+        var willResume = RoombaStatusText.IsMissionActive(cycle)
                          && phase is "hmMidMsn" or "charge";
         var docked = phase is "charge" or "stop" or "evac" && !cleaning;
 
-        var activity = DescribeActivity(phase, cycle, error, notReady, battery);
+        var notReadyCause = hasNotReady
+            ? RoombaStatusText.DescribeNotReadyCause(
+                state.DetectedPad, state.TankPresent, state.TankLvl, state.LidOpen, state.Bin?.Present)
+            : null;
+        var activity = RoombaStatusText.DescribeActivity(phase, cycle, error, notReady, battery, notReadyCause);
 
         return new RobotStatusSummary(
             RobotId: robotId,
@@ -58,63 +71,21 @@ public record RobotStatusSummary(
             WillResume: willResume,
             Docked: docked,
             ErrorCode: hasError ? error : null,
-            ErrorMessage: hasError ? DescribeError(error!.Value) : null,
+            ErrorMessage: hasError ? RoombaStatusText.DescribeError(error!.Value) : null,
             NotReadyCode: hasNotReady ? notReady : null,
+            NotReadyCause: notReadyCause,
             MinutesIntoMission: m?.MssnM,
             MapCount: mapCount,
             BinPresent: state.Bin?.Present,
             BinFull: state.Bin?.Full,
             WifiRssi: state.Signal?.Rssi,
             WifiSnr: state.Signal?.Snr,
-            DockKnown: state.Dock?.Known
+            DockKnown: state.Dock?.Known,
+            SoftwareVersion: state.SoftwareVer,
+            DetectedPad: state.DetectedPad,
+            TankPresent: state.TankPresent,
+            TankLevelPct: state.TankLvl,
+            LidOpen: state.LidOpen
         );
     }
-
-    private static string DescribeActivity(string? phase, string? cycle, int? error, int? notReady, int? battery)
-    {
-        if (error is not (null or 0))
-        {
-            return $"Error: {DescribeError(error.Value)} (code {error})";
-        }
-
-        if (notReady is not (null or 0))
-        {
-            return $"Not ready (code {notReady})";
-        }
-
-        var missionActive = cycle is "clean" or "quick" or "spot";
-
-        return phase switch
-        {
-            "run" when cycle == "evac" => "Emptying bin",
-            "run" => "Cleaning",
-            "evac" => "Emptying bin",
-            "stuck" => "Stuck — needs help",
-            "hmMidMsn" => "Returning to dock to recharge (will resume mission)",
-            "hmUsrDock" => "Returning to dock (requested)",
-            "hmPostMsn" => "Returning to dock (mission complete)",
-            "charge" when missionActive => "Docked and charging — will resume mission",
-            "charge" when battery is >= 100 => "Docked — fully charged, idle",
-            "charge" => "Docked and charging",
-            "stop" when missionActive => "Paused",
-            "stop" => "Idle (stopped)",
-            "pause" => "Paused",
-            "evacuating" => "Emptying bin",
-            null => "Unknown",
-            _ => phase,
-        };
-    }
-
-    private static string DescribeError(int code) => code switch
-    {
-        0 => "none",
-        1 => "wheel stuck / lifted",
-        2 => "brushes stuck",
-        6 => "cliff sensor issue",
-        9 => "bumper stuck",
-        15 => "internal error — reboot",
-        16 => "bin full",
-        18 => "docking failed",
-        _ => "see iRobot error reference",
-    };
 }

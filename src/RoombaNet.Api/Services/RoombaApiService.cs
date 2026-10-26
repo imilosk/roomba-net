@@ -1,3 +1,4 @@
+using System.Net;
 using RoombaNet.Api.Models;
 using RoombaNet.Api.Services.RoombaClients;
 using RoombaNet.Api.Services.RobotRegistry;
@@ -639,6 +640,7 @@ public class RoombaApiService
 
     public async Task<DiscoveryResponse> DiscoverRoombas(
         int timeoutSeconds = 5,
+        IReadOnlyCollection<IPAddress>? targets = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -646,7 +648,7 @@ public class RoombaApiService
         {
             _logger.LogInformation("Starting Roomba discovery with timeout: {Timeout}s", timeoutSeconds);
 
-            var roombas = await _discoveryService.DiscoverRoombas(timeoutSeconds, cancellationToken);
+            var roombas = await _discoveryService.DiscoverRoombas(timeoutSeconds, targets, cancellationToken);
 
             var discoveredRoombas = roombas.Select(r => new DiscoveredRoomba
                 {

@@ -13,7 +13,7 @@ namespace RoombaNet.Cli;
 
 public static class Bootstrapper
 {
-    public static IServiceProvider CreateServiceProvider()
+    public static IServiceProvider CreateServiceProvider(string? robot = null)
     {
         var environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Development";
 
@@ -24,6 +24,8 @@ public static class Bootstrapper
             .AddEnvironmentVariables()
             .Build();
 
+        var sectionName = ResolveRobotSection(configuration, robot);
+
         var services = new ServiceCollection();
 
         services.AddLogging(builder =>
@@ -32,7 +34,7 @@ public static class Bootstrapper
             builder.AddConsole();
         });
 
-        services.AddRoombaSettings(configuration);
+        services.AddRoombaSettings(configuration, sectionName);
 
         services.AddCore(configuration);
 
@@ -50,5 +52,32 @@ public static class Bootstrapper
         services.TryAddSingleton<CliCommandBuilder>();
 
         return services.BuildServiceProvider();
+    }
+
+    /// <summary>
+    /// Resolves which configuration section holds the robot's connection settings.
+    /// A friendly profile name (from --robot or Robots:DefaultRobot) is looked up in the
+    /// Robots:Profiles map; falls back to the literal name, then to "RoombaSettings".
+    /// </summary>
+    private static string ResolveRobotSection(IConfiguration configuration, string? robot)
+    {
+        const string defaultSection = nameof(RoombaNet.Settings.Settings.RoombaSettings);
+
+        var profiles = configuration.GetSection("Robots:Profiles").Get<Dictionary<string, string>>()
+                       ?? new Dictionary<string, string>();
+
+        var name = robot ?? configuration["Robots:DefaultRobot"];
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return defaultSection;
+        }
+
+        if (profiles.TryGetValue(name, out var section) && !string.IsNullOrWhiteSpace(section))
+        {
+            return section;
+        }
+
+        // Allow passing a literal config section name directly; else fall back.
+        return configuration.GetSection(name).Exists() ? name : defaultSection;
     }
 }

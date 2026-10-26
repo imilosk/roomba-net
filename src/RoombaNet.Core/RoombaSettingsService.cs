@@ -114,6 +114,70 @@ public class RoombaSettingsService : IRoombaSettingsService
         return SetSetting(RoombaSetting.Name, name, cancellationToken);
     }
 
+    public Task SetEcoCharge(bool enable, CancellationToken cancellationToken = default)
+    {
+        return SetSetting(RoombaSetting.EcoCharge, enable, cancellationToken);
+    }
+
+    public Task SetMapUpload(bool enable, CancellationToken cancellationToken = default)
+    {
+        return SetSetting(RoombaSetting.MapUploadAllowed, enable, cancellationToken);
+    }
+
+    public Task SetMapLearning(bool enable, CancellationToken cancellationToken = default)
+    {
+        return SetSetting(RoombaSetting.PmapLearningAllowed, enable, cancellationToken);
+    }
+
+    public Task SetContinuousMapLearning(bool enable, CancellationToken cancellationToken = default)
+    {
+        return SetSetting(RoombaSetting.PmapContinuousLearning, enable, cancellationToken);
+    }
+
+    public Task SetBinTypeDetect(int value, CancellationToken cancellationToken = default)
+    {
+        return SetSetting(RoombaSetting.BinTypeDetect, value, cancellationToken);
+    }
+
+    public Task SetPerimeterPass(bool enable, CancellationToken cancellationToken = default)
+    {
+        // noPP=true means "no perimeter pass", so it is the inverse of enabling it.
+        return SetSetting(RoombaSetting.NoPerimeterPass, !enable, cancellationToken);
+    }
+
+    public Task SetTimezone(string ianaTimezone, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(ianaTimezone))
+        {
+            throw new ArgumentException("Timezone must not be empty.", nameof(ianaTimezone));
+        }
+
+        return SetSetting(RoombaSetting.Timezone, ianaTimezone, cancellationToken);
+    }
+
+    public Task SetVolume(int volume, CancellationToken cancellationToken = default)
+    {
+        if (volume is < 0 or > 100)
+        {
+            throw new ArgumentOutOfRangeException(nameof(volume), volume, "Volume must be 0-100.");
+        }
+
+        return SetSetting(RoombaSetting.Audio, new AudioSetting { Volume = volume }, cancellationToken);
+    }
+
+    public Task SetLanguage(string languageCode, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(languageCode))
+        {
+            throw new ArgumentException("Language code must not be empty.", nameof(languageCode));
+        }
+
+        return SetSetting(
+            RoombaSetting.Languages,
+            new LanguageSetting { SelectedLanguage = languageCode },
+            cancellationToken);
+    }
+
     private async Task SetSetting<T>(
         string setting,
         T value,
@@ -187,6 +251,16 @@ public class RoombaSettingsService : IRoombaSettingsService
         if (typeof(T) == typeof(PadWetnessSetting))
         {
             return (JsonTypeInfo<SettingPayload<T>>)(object)RoombaJsonContext.Default.SettingPayloadPadWetnessSetting;
+        }
+
+        if (typeof(T) == typeof(AudioSetting))
+        {
+            return (JsonTypeInfo<SettingPayload<T>>)(object)RoombaJsonContext.Default.SettingPayloadAudioSetting;
+        }
+
+        if (typeof(T) == typeof(LanguageSetting))
+        {
+            return (JsonTypeInfo<SettingPayload<T>>)(object)RoombaJsonContext.Default.SettingPayloadLanguageSetting;
         }
 
         throw new NotSupportedException(

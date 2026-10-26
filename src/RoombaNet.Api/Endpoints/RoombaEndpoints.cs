@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using RoombaNet.Api.Models;
 using RoombaNet.Api.Services.RoombaClients;
@@ -5,6 +6,7 @@ using RoombaNet.Api.Services.RoombaStatus;
 using RoombaNet.Api.Services.RobotRegistry;
 using RoombaNet.Api.Services;
 using RoombaNet.Core;
+using RoombaNet.Transport.Tls;
 
 namespace RoombaNet.Api.Endpoints;
 
@@ -598,12 +600,23 @@ public static class RoombaEndpoints
         group.MapGet("/", async (
                 [FromQuery] int? timeout,
                 [FromQuery] bool? save,
+                [FromQuery] string[]? target,
                 RoombaApiService roombaService,
                 IRobotRegistry registry,
                 CancellationToken cancellationToken) =>
             {
+                List<IPAddress> targets;
+                try
+                {
+                    targets = DiscoveryTargets.Parse(target ?? []);
+                }
+                catch (FormatException ex)
+                {
+                    return Results.Problem(statusCode: StatusCodes.Status400BadRequest, detail: ex.Message);
+                }
+
                 var timeoutSeconds = timeout ?? 5;
-                var result = await roombaService.DiscoverRoombas(timeoutSeconds, cancellationToken);
+                var result = await roombaService.DiscoverRoombas(timeoutSeconds, targets, cancellationToken);
 
                 if (result.Success && save is true)
                 {
@@ -627,8 +640,9 @@ public static class RoombaEndpoints
             .WithName("DiscoverRoombas")
             .WithSummary("Discover Roomba robots on the network")
             .WithDescription(
-                "Scans the local network for available Roomba robots using UDP broadcast. Returns a list of discovered robots with their network information. Set save=true to store them in the registry.")
+                "Scans the local network for available Roomba robots using UDP broadcast. Broadcast does not cross subnets/VLANs, so pass target (repeatable; an IP or CIDR range such as 192.168.20.0/24) to also query those addresses directly. Returns a list of discovered robots with their network information. Set save=true to store them in the registry.")
             .Produces<DiscoveryResponse>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status500InternalServerError);
     }
 

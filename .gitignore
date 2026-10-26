@@ -488,3 +488,5 @@ $RECYCLE.BIN/
 *.swp
 
 *secrets.*.json
+# Downloaded iRobot voice/language packs (binaries, kept local only)
+langpacks/
