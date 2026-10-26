@@ -12,3 +12,5 @@ README.md
 LICENSE
 **/secrets.*.json
 **/*.md
+
+langpacks/

@@ -26,8 +26,16 @@ public class RoombaTools
 
     [McpServerTool(Name = "discover_robots")]
     [Description("Scan the local network for Roomba robots and return the ones found.")]
-    public Task<string> Discover(CancellationToken cancellationToken)
-        => _api.GetJson("/api/roomba/discovery", cancellationToken);
+    public Task<string> Discover(
+        [Description("Optional IPs or CIDR ranges (e.g. 192.168.20.0/24) to query directly. Use when robots are on another subnet/VLAN, which broadcast cannot reach.")]
+        string[]? targets,
+        CancellationToken cancellationToken)
+    {
+        var query = targets is { Length: > 0 }
+            ? "?" + string.Join("&", targets.Select(t => $"target={RoombaApiClient.Escape(t)}"))
+            : "";
+        return _api.GetJson($"/api/roomba/discovery{query}", cancellationToken);
+    }
 
     [McpServerTool(Name = "get_status")]
     [Description("Get the full raw status snapshot for a robot: battery, mission phase/cycle, bin, position, map count, etc.")]

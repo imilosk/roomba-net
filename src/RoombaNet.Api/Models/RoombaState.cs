@@ -149,6 +149,18 @@ public class RoombaState
     [JsonPropertyName("rankOverlap")]
     public int? RankOverlap { get; set; }
 
+    [JsonPropertyName("detectedPad")]
+    public string? DetectedPad { get; set; }
+
+    [JsonPropertyName("tankPresent")]
+    public bool? TankPresent { get; set; }
+
+    [JsonPropertyName("tankLvl")]
+    public int? TankLvl { get; set; }
+
+    [JsonPropertyName("lidOpen")]
+    public bool? LidOpen { get; set; }
+
     [JsonPropertyName("reflexSettings")]
     public ReflexSettings? ReflexSettings { get; set; }
 

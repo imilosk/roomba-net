@@ -31,7 +31,8 @@ public class StatusCommand : Command
         var state = await StateReader.ReadState(
             _subscriber,
             _connectionManager,
-            s => s.ContainsKey("batPct") && s.ContainsKey("bin"),
+            // Vacuums report a bin, Braavas a water tank instead.
+            s => s.ContainsKey("batPct") && (s.ContainsKey("bin") || s.ContainsKey("tankPresent")),
             TimeSpan.FromSeconds(6),
             _cancellationToken);
 
@@ -42,17 +43,24 @@ public class StatusCommand : Command
         }
 
         var mission = state["cleanMissionStatus"] as JsonObject;
+        var bin = state["bin"] as JsonObject;
 
         Console.WriteLine("──────────── Roomba Status ────────────");
-        Console.WriteLine($"  {"Activity",-16}: {DescribeActivity(mission, state["batPct"])}");
+        Console.WriteLine($"  {"Activity",-16}: {DescribeActivity(state, mission, bin)}");
         PrintField("Name", state["name"]);
         PrintField("SKU", state["sku"]);
+        PrintField("Firmware", state["softwareVer"]);
         PrintField("Battery %", state["batPct"]);
         PrintField("Phase", mission?["phase"]);
         PrintField("Cycle", mission?["cycle"]);
-        PrintField("Mission error", mission?["error"]);
-        PrintField("Bin present", (state["bin"] as JsonObject)?["present"]);
-        PrintField("Bin full", (state["bin"] as JsonObject)?["full"]);
+        var missionError = GetInt(mission?["error"]);
+        Console.WriteLine($"  {"Mission error",-16}: " +
+            (missionError is null or 0
+                ? "none"
+                : $"{RoombaStatusText.DescribeError(missionError.Value)} (code {missionError})"));
+        PrintField("Bin present", bin?["present"]);
+        PrintField("Bin full", bin?["full"]);
+        PrintMoppingFields(state);
         var pose = state["pose"] as JsonObject;
         if (pose is not null)
         {
@@ -73,36 +81,61 @@ public class StatusCommand : Command
         }
     }
 
-    private static string DescribeActivity(JsonObject? mission, JsonNode? battery)
+    private static void PrintMoppingFields(JsonObject state)
     {
-        var phase = mission?["phase"]?.GetValue<string>();
-        var cycle = mission?["cycle"]?.GetValue<string>();
-        var error = mission?["error"]?.GetValue<int>();
-        var notReady = mission?["notReady"]?.GetValue<int>();
-        var bat = battery?.GetValue<int>();
-
-        if (error is not (null or 0)) return $"Error (code {error})";
-        if (notReady is not (null or 0)) return $"Not ready (code {notReady})";
-
-        var missionActive = cycle is "clean" or "quick" or "spot";
-        return phase switch
+        if (!state.ContainsKey("tankPresent"))
         {
-            "run" when cycle == "evac" => "Emptying bin",
-            "run" => "Cleaning",
-            "evac" => "Emptying bin",
-            "stuck" => "Stuck — needs help",
-            "hmMidMsn" => "Returning to dock to recharge (will resume)",
-            "hmUsrDock" => "Returning to dock (requested)",
-            "hmPostMsn" => "Returning to dock (mission complete)",
-            "charge" when missionActive => "Docked, charging — will resume mission",
-            "charge" when bat is >= 100 => "Docked — fully charged, idle",
-            "charge" => "Docked and charging",
-            "stop" when missionActive => "Paused",
-            "stop" => "Idle (stopped)",
-            "pause" => "Paused",
-            null => "Unknown",
-            _ => phase,
-        };
-    }
-}
+            return;
+        }
 
+        var detectedPad = GetString(state["detectedPad"]);
+        Console.WriteLine($"  {"Pad",-16}: {RoombaStatusText.DescribePad(detectedPad)}");
+        PrintField("Tank present", state["tankPresent"]);
+        PrintField("Tank level %", state["tankLvl"]);
+        PrintField("Lid open", state["lidOpen"]);
+
+        var wetness = state["padWetness"] as JsonObject;
+        if (wetness is not null)
+        {
+            Console.WriteLine(
+                $"  {"Liquid amount",-16}: disposable {RoombaStatusText.DescribeLiquidAmount(GetInt(wetness["disposable"]))}, " +
+                $"reusable {RoombaStatusText.DescribeLiquidAmount(GetInt(wetness["reusable"]))}");
+        }
+
+        var overlap = GetInt(state["rankOverlap"]);
+        if (overlap is not null)
+        {
+            Console.WriteLine($"  {"Mop overlap",-16}: {overlap}%");
+        }
+    }
+
+    private static string DescribeActivity(JsonObject state, JsonObject? mission, JsonObject? bin)
+    {
+        var notReady = GetInt(mission?["notReady"]);
+        var notReadyCause = notReady is not (null or 0)
+            ? RoombaStatusText.DescribeNotReadyCause(
+                GetString(state["detectedPad"]),
+                GetBool(state["tankPresent"]),
+                GetInt(state["tankLvl"]),
+                GetBool(state["lidOpen"]),
+                GetBool(bin?["present"]))
+            : null;
+
+        return RoombaStatusText.DescribeActivity(
+            GetString(mission?["phase"]),
+            GetString(mission?["cycle"]),
+            GetInt(mission?["error"]),
+            notReady,
+            GetInt(state["batPct"]),
+            notReadyCause);
+    }
+
+    private static string? GetString(JsonNode? node) =>
+        node is JsonValue value && value.TryGetValue<string>(out var result) ? result : null;
+
+    private static int? GetInt(JsonNode? node) =>
+        node is JsonValue value && value.TryGetValue<int>(out var result) ? result : null;
+
+    private static bool? GetBool(JsonNode? node) =>
+        node is JsonValue value && value.TryGetValue<bool>(out var result) ? result : null;
+}

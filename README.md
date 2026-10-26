@@ -6,6 +6,7 @@ A .NET application for local control of iRobot devices via MQTT, without relying
 
 ### Tested Devices
 - **Roomba i3** ✅ Fully tested and confirmed working
+- **Braava jet m6** 🟡 Discovery and status confirmed (firmware sanmarino 22.29.6); commands and mop settings not yet exercised
 
 ### Potentially Compatible Models
 Based on MQTT protocol support, the following models should work but are untested:
@@ -26,7 +27,7 @@ Based on MQTT protocol support, the following models should work but are unteste
 - 690, 695, 698 (if equipped with Wi-Fi)
 
 **Braava** (mopping robots)
-- Jet m6
+- Jet m6 (see Tested Devices)
 
 **Note**: Models without Wi-Fi connectivity or those using only Bluetooth are not supported.
 
@@ -188,6 +189,9 @@ Run the CLI tool with different commands:
 # Discover Roombas on your network
 dotnet run --project src/RoombaNet.Cli discover
 
+# Robots on another subnet/VLAN (broadcast can't reach them): query an IP or range directly
+dotnet run --project src/RoombaNet.Cli discover --target 192.168.20.0/24
+
 # Configure Wi-Fi settings (connect to Roomba's network first)
 dotnet run --project src/RoombaNet.Cli configure-wifi --ssid "YourNetwork" --password "YourPassword"
 
@@ -287,6 +291,9 @@ Notes:
 ```bash
 # Discover robots and save them to the registry
 curl "http://localhost:8080/api/roomba/discovery?save=true"
+
+# Include robots on another subnet/VLAN (target is repeatable: IP or CIDR range)
+curl "http://localhost:8080/api/roomba/discovery?save=true&target=192.168.20.0/24"
 
 # List registered robots
 curl http://localhost:8080/api/roomba/robots

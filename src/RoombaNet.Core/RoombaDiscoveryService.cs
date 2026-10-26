@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.Extensions.Logging;
 using RoombaNet.Transport.Tls;
 
@@ -19,12 +20,16 @@ public class RoombaDiscoveryService : IRoombaDiscoveryService
 
     public async Task<List<RoombaInfo>> DiscoverRoombas(
         int timeoutSeconds = 5,
+        IReadOnlyCollection<IPAddress>? targets = null,
         CancellationToken cancellationToken = default
     )
     {
-        _logger.LogInformation("Starting Roomba discovery with {Timeout}s timeout", timeoutSeconds);
+        _logger.LogInformation(
+            "Starting Roomba discovery with {Timeout}s timeout and {TargetCount} unicast target(s)",
+            timeoutSeconds,
+            targets?.Count ?? 0);
 
-        var roombas = await _discoveryClient.DiscoverRoombas(timeoutSeconds, cancellationToken);
+        var roombas = await _discoveryClient.DiscoverRoombas(timeoutSeconds, targets, cancellationToken);
 
         _logger.LogInformation("Discovery completed. Found {Count} Roomba device(s)", roombas.Count);
 

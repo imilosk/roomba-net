@@ -11,13 +11,13 @@ Firmware-level reverse-engineering (OTA, package format, secure boot) lives one 
 ## 1. Verified facts (this network, 2026-10-24)
 
 ### Our robots
-| | Robot A (live) | Robot B (offline) |
+| | Robot A (live) | Robot B (live) |
 |---|---|---|
 | IP | 192.168.20.65 | 192.168.20.66 |
 | BLID (MQTT user) | `<see secrets.Development.json>` | `<see secrets.Development.json>` |
 | password | `<see secrets.Development.json>` | `<see secrets.Development.json>` |
-| model | i3+ (sku **i355840**, codename Daredevil) | i-series |
-| firmware | **daredevil+2.6.0+daredevil-release+163** | — |
+| model | i3+ (sku **i355840**, codename Daredevil) | **Braava jet m6** (sku **m611020**, codename Sanmarino) |
+| firmware | **daredevil+2.6.0+daredevil-release+163** | **sanmarino+22.29.6+2022-12-01-82f3372a65c+Firmware-Build+2321** |
 | MAC | 50:14:79:40:F0:C5 | 50:14:79:8B:CD:8F |
 
 > Creds are in `src/RoombaNet.Api/secrets.Development.json` (keys `RoombaSettingsX/Y`). These are
@@ -57,6 +57,10 @@ Firmware-level reverse-engineering (OTA, package format, secure boot) lives one 
   (edge/passes), `childLock`, `schedule{cycle,h,m}`, language, etc.
 - Status fields: `cleanMissionStatus{cycle,phase,error,nMssn,...}`, `pose{point,theta}`,
   `signal{rssi,snr}`, `batPct`, `bin{full}`. (Full dump: see `../../DecompiledCode/README.md`.)
+- Braava m6 (verified 2026-10-25): **no `bin`** field; instead `tankPresent`, `tankLvl` (0–100),
+  `lidOpen`, `detectedPad` (`"invalid"` with no pad), `padWetness{disposable,reusable}`,
+  `rankOverlap`, `chrgLrPtrn`. Full shadow arrives in one message. Docked with no pad it reports
+  `notReady: 34`. `subModSwVer` lists nav/mob/pwr/sft/mobBtl/linux/con versions.
 
 ---
 
@@ -88,8 +92,8 @@ RoombaNet.Settings       config + encrypted RobotRegistry (SQLite at DatabasePat
       of stored passwords actually works end-to-end (we have the `EncryptionKey` mechanism).
 - [ ] **Get creds out of `secrets.Development.json`** and into the encrypted registry; scrub them
       from git history. Provide a one-time `pair`/import flow.
-- [ ] **Unicast / seed-IP discovery** in `RoombaDiscoveryClient` (broadcast fails across VLANs — our
-      exact situation). Accept a known IP and still parse the discovery reply.
+- [x] **Unicast / seed-IP discovery** in `RoombaDiscoveryClient` (broadcast fails across VLANs — our
+      exact situation). Done: `discover --target <ip|cidr>`, API `?target=`, MCP `targets`.
 - [ ] **Resilient single connection**: auto-reconnect w/ backoff, surface "app stole the connection"
       cleanly, optional keepalive. Centralize in `RoombaConnectionManager`.
 - [ ] **Multi-robot** first-class (we have 2 robots) — registry-driven, one connection each.
@@ -135,7 +139,7 @@ component needed.
 ## 4. Quick repro (local control from scratch)
 ```bash
 # discovery (unicast works cross-subnet; broadcast only same subnet)
-printf 'irobotmcs' | nc -u -w3 192.168.20.65 5678      # or RoombaNet.Cli discover on-subnet
+printf 'irobotmcs' | nc -u -w3 192.168.20.65 5678      # or: RoombaNet.Cli discover --target 192.168.20.0/24
 # control: MQTT/TLS :8883, user=BLID, pass=stored pw, clientId=BLID, publish to 'cmd'
 #   {"command":"find","time":<unix>,"initiator":"localApp"}
 ```

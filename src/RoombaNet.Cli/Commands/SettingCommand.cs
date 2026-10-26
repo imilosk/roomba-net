@@ -34,6 +34,20 @@ public class SettingCommand : Command
         );
         AddNameSubcommand();
 
+        AddBooleanSubcommand("ecocharge", "Battery-longevity eco charging", SetEcoCharge);
+        AddBooleanSubcommand("mapupload", "Allow uploading the learned map to the cloud", SetMapUpload);
+        AddBooleanSubcommand("maplearning", "Allow persistent-map learning", SetMapLearning);
+        AddBooleanSubcommand(
+            "continuouslearning",
+            "Allow continuous persistent-map learning",
+            SetContinuousMapLearning,
+            "cl");
+        AddBooleanSubcommand("perimeter", "Perimeter/edge pass (inverse of noPP)", SetPerimeterPass, "perimeterpass");
+        AddIntSubcommand("bintypedetect", "Bin-type auto-detection", SetBinTypeDetect, "value", "bintype");
+        AddIntSubcommand("volume", "Speaker volume (0-100)", SetVolume, "level");
+        AddStringSubcommand("timezone", "IANA timezone, e.g. Europe/Ljubljana", SetTimezone, "iana", "tz");
+        AddStringSubcommand("language", "Voice language code, e.g. en-US_1", SetLanguage, "code", "lang");
+
         Aliases.Add("set");
     }
 
@@ -107,6 +121,46 @@ public class SettingCommand : Command
         Subcommands.Add(command);
     }
 
+    private void AddIntSubcommand(
+        string commandName,
+        string description,
+        Func<int, Task> handler,
+        string argumentName,
+        params string[] aliases
+    )
+    {
+        var command = new Command(commandName, description);
+        foreach (var alias in aliases)
+        {
+            command.Aliases.Add(alias);
+        }
+
+        var argument = new Argument<int>(argumentName) { Description = description };
+        command.Arguments.Add(argument);
+        command.SetAction(async parseResult => await handler(parseResult.GetValue(argument)));
+        Subcommands.Add(command);
+    }
+
+    private void AddStringSubcommand(
+        string commandName,
+        string description,
+        Func<string, Task> handler,
+        string argumentName,
+        params string[] aliases
+    )
+    {
+        var command = new Command(commandName, description);
+        foreach (var alias in aliases)
+        {
+            command.Aliases.Add(alias);
+        }
+
+        var argument = new Argument<string>(argumentName) { Description = description };
+        command.Arguments.Add(argument);
+        command.SetAction(async parseResult => await handler(parseResult.GetValue(argument)!));
+        Subcommands.Add(command);
+    }
+
     private async Task SetChildLock(bool enable) =>
         await _roombaSettingsClient.SetChildLock(enable, _cancellationToken);
 
@@ -120,4 +174,31 @@ public class SettingCommand : Command
 
     private async Task SetCleaningPower(RoombaCleaningPower power) =>
         await _roombaSettingsClient.SetCleaningPower(power, _cancellationToken);
+
+    private async Task SetEcoCharge(bool enable) =>
+        await _roombaSettingsClient.SetEcoCharge(enable, _cancellationToken);
+
+    private async Task SetMapUpload(bool enable) =>
+        await _roombaSettingsClient.SetMapUpload(enable, _cancellationToken);
+
+    private async Task SetMapLearning(bool enable) =>
+        await _roombaSettingsClient.SetMapLearning(enable, _cancellationToken);
+
+    private async Task SetContinuousMapLearning(bool enable) =>
+        await _roombaSettingsClient.SetContinuousMapLearning(enable, _cancellationToken);
+
+    private async Task SetPerimeterPass(bool enable) =>
+        await _roombaSettingsClient.SetPerimeterPass(enable, _cancellationToken);
+
+    private async Task SetBinTypeDetect(int value) =>
+        await _roombaSettingsClient.SetBinTypeDetect(value, _cancellationToken);
+
+    private async Task SetVolume(int level) =>
+        await _roombaSettingsClient.SetVolume(level, _cancellationToken);
+
+    private async Task SetTimezone(string iana) =>
+        await _roombaSettingsClient.SetTimezone(iana, _cancellationToken);
+
+    private async Task SetLanguage(string code) =>
+        await _roombaSettingsClient.SetLanguage(code, _cancellationToken);
 }
