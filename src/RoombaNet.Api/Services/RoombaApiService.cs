@@ -942,4 +942,236 @@ public class RoombaApiService
                 ex.GetType().Name, ex.Message);
         }
     }
+
+    public async Task<SettingsResponse> SetEcoChargeAsync(
+        bool enable,
+        string robotId,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.SettingsService.SetEcoCharge(enable, cancellationToken);
+
+            return new SettingsResponse(true, "EcoCharge",
+                $"Eco charge {(enable ? "enabled" : "disabled")}", timestamp, executionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set eco charge");
+            return new SettingsResponse(false, "EcoCharge", "Failed to set eco charge", timestamp, executionId,
+                ex.GetType().Name, ex.Message);
+        }
+    }
+
+    public async Task<SettingsResponse> SetMapUploadAsync(
+        bool enable,
+        string robotId,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.SettingsService.SetMapUpload(enable, cancellationToken);
+
+            return new SettingsResponse(true, "MapUpload",
+                $"Map upload {(enable ? "enabled" : "disabled")}", timestamp, executionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set map upload");
+            return new SettingsResponse(false, "MapUpload", "Failed to set map upload", timestamp, executionId,
+                ex.GetType().Name, ex.Message);
+        }
+    }
+
+    public async Task<SettingsResponse> SetMapLearningAsync(
+        bool enable,
+        string robotId,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.SettingsService.SetMapLearning(enable, cancellationToken);
+
+            return new SettingsResponse(true, "MapLearning",
+                $"Map learning {(enable ? "enabled" : "disabled")}", timestamp, executionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set map learning");
+            return new SettingsResponse(false, "MapLearning", "Failed to set map learning", timestamp, executionId,
+                ex.GetType().Name, ex.Message);
+        }
+    }
+
+    public async Task<SettingsResponse> SetContinuousMapLearningAsync(
+        bool enable,
+        string robotId,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.SettingsService.SetContinuousMapLearning(enable, cancellationToken);
+
+            return new SettingsResponse(true, "ContinuousMapLearning",
+                $"Continuous map learning {(enable ? "enabled" : "disabled")}", timestamp, executionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set continuous map learning");
+            return new SettingsResponse(false, "ContinuousMapLearning", "Failed to set continuous map learning",
+                timestamp, executionId, ex.GetType().Name, ex.Message);
+        }
+    }
+
+    public async Task<SettingsResponse> SetPerimeterPassAsync(
+        bool enable,
+        string robotId,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.SettingsService.SetPerimeterPass(enable, cancellationToken);
+
+            return new SettingsResponse(true, "PerimeterPass",
+                $"Perimeter pass {(enable ? "enabled" : "disabled")}", timestamp, executionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set perimeter pass");
+            return new SettingsResponse(false, "PerimeterPass", "Failed to set perimeter pass", timestamp, executionId,
+                ex.GetType().Name, ex.Message);
+        }
+    }
+
+    public async Task<SettingsResponse> SetBinTypeDetectAsync(
+        int value,
+        string robotId,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.SettingsService.SetBinTypeDetect(value, cancellationToken);
+
+            return new SettingsResponse(true, "BinTypeDetect",
+                $"Bin-type detection set to {value}", timestamp, executionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set bin-type detection");
+            return new SettingsResponse(false, "BinTypeDetect", "Failed to set bin-type detection", timestamp,
+                executionId, ex.GetType().Name, ex.Message);
+        }
+    }
+
+    public async Task<SettingsResponse> SetVolumeAsync(
+        int volume,
+        string robotId,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            if (volume is < 0 or > 100)
+            {
+                return new SettingsResponse(false, "Volume",
+                    $"Invalid volume: {volume}. Valid values are 0-100.", timestamp, executionId,
+                    "InvalidValue", "Valid values: 0-100");
+            }
+
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.SettingsService.SetVolume(volume, cancellationToken);
+
+            return new SettingsResponse(true, "Volume", $"Volume set to {volume}", timestamp, executionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set volume");
+            return new SettingsResponse(false, "Volume", "Failed to set volume", timestamp, executionId,
+                ex.GetType().Name, ex.Message);
+        }
+    }
+
+    public async Task<SettingsResponse> SetTimezoneAsync(
+        string ianaTimezone,
+        string robotId,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(ianaTimezone))
+            {
+                return new SettingsResponse(false, "Timezone", "Timezone must not be empty", timestamp, executionId,
+                    "InvalidValue");
+            }
+
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.SettingsService.SetTimezone(ianaTimezone, cancellationToken);
+
+            return new SettingsResponse(true, "Timezone", $"Timezone set to '{ianaTimezone}'", timestamp, executionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set timezone");
+            return new SettingsResponse(false, "Timezone", "Failed to set timezone", timestamp, executionId,
+                ex.GetType().Name, ex.Message);
+        }
+    }
+
+    public async Task<SettingsResponse> SetLanguageAsync(
+        string languageCode,
+        string robotId,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(languageCode))
+            {
+                return new SettingsResponse(false, "Language", "Language code must not be empty", timestamp,
+                    executionId, "InvalidValue");
+            }
+
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.SettingsService.SetLanguage(languageCode, cancellationToken);
+
+            return new SettingsResponse(true, "Language", $"Language set to '{languageCode}'", timestamp, executionId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set language");
+            return new SettingsResponse(false, "Language", "Failed to set language", timestamp, executionId,
+                ex.GetType().Name, ex.Message);
+        }
+    }
 }
