@@ -54,6 +54,7 @@ public class StatusCommand : Command
         PrintField("Name", state["name"]);
         PrintField("SKU", state["sku"]);
         PrintField("Firmware", state["softwareVer"]);
+        PrintFirmwareDetail(state);
         PrintField("Battery %", state["batPct"]);
         PrintField("Phase", mission?["phase"]);
         PrintField("Cycle", mission?["cycle"]);
@@ -90,6 +91,41 @@ public class StatusCommand : Command
         if (value is not null)
         {
             Console.WriteLine($"  {label,-16}: {value}");
+        }
+    }
+
+    private static void PrintFirmwareDetail(JsonObject state)
+    {
+        var dock = state["dock"] as JsonObject;
+        var dockFw = GetString(dock?["fwVer"]);
+        if (!string.IsNullOrWhiteSpace(dockFw))
+        {
+            Console.WriteLine($"  {"Dock firmware",-16}: {dockFw}");
+        }
+
+        // Per-module versions (subModSwVer): nav/mobility/power/safety/linux/connectivity.
+        var modules = state["subModSwVer"] as JsonObject;
+        if (modules is null)
+        {
+            return;
+        }
+
+        var parts = new[]
+            {
+                ("nav", modules["nav"]),
+                ("mob", modules["mob"]),
+                ("pwr", modules["pwr"]),
+                ("sft", modules["sft"]),
+                ("linux", modules["linux"]),
+                ("con", modules["con"]),
+            }
+            .Where(p => p.Item2 is not null)
+            .Select(p => $"{p.Item1} {GetString(p.Item2)}")
+            .ToList();
+
+        if (parts.Count > 0)
+        {
+            Console.WriteLine($"  {"Modules",-16}: {string.Join(", ", parts)}");
         }
     }
 

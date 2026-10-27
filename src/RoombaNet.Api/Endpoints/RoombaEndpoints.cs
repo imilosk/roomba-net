@@ -735,6 +735,26 @@ public static class RoombaEndpoints
             .Produces<RobotStatusSummary>()
             .Produces<string>(StatusCodes.Status400BadRequest);
 
+        group.MapGet("/firmware", async (
+                [FromQuery] string robotId,
+                [FromServices] RoombaStatusManager statusManager,
+                CancellationToken cancellationToken) =>
+            {
+                if (string.IsNullOrWhiteSpace(robotId))
+                {
+                    return Results.BadRequest("robotId is required");
+                }
+
+                var state = await statusManager.GetCurrentState(robotId, TimeSpan.FromSeconds(8), cancellationToken);
+                return Results.Ok(FirmwareInfo.From(robotId, state));
+            })
+            .WithName("GetRoombaFirmware")
+            .WithSummary("Get the robot's firmware and module versions")
+            .WithDescription(
+                "Returns the robot's reported firmware: main software version, SKU, per-module versions (nav/mob/pwr/sft/linux/con), and dock firmware. Read-only — RoombaNet does not push OTA updates.")
+            .Produces<FirmwareInfo>()
+            .Produces<string>(StatusCodes.Status400BadRequest);
+
         group.MapGet("/stream", async (
                 [FromQuery] string robotId,
                 [FromServices] RoombaStatusManager statusManager,

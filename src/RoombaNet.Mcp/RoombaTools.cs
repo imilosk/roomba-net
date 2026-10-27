@@ -51,6 +51,13 @@ public class RoombaTools
         CancellationToken cancellationToken)
         => _api.GetJson($"/api/roomba/status/summary{Q(robotId)}", cancellationToken);
 
+    [McpServerTool(Name = "get_firmware")]
+    [Description("Get the robot's firmware and module versions: main software version, SKU, per-module versions (nav/mob/pwr/sft/linux/con), and dock firmware. Read-only.")]
+    public Task<string> GetFirmware(
+        [Description("The robot's BLID / registry id")] string robotId,
+        CancellationToken cancellationToken)
+        => _api.GetJson($"/api/roomba/status/firmware{Q(robotId)}", cancellationToken);
+
     [McpServerTool(Name = "start_cleaning")]
     [Description("Start a cleaning mission.")]
     public Task<string> Start(
