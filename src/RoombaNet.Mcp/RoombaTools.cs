@@ -243,4 +243,25 @@ public class RoombaTools
         [Description("Language code, e.g. en-US_1")] string value,
         CancellationToken cancellationToken)
         => _api.PostJson($"/api/roomba/settings/language{Q(robotId)}", new { value }, cancellationToken);
+
+    [McpServerTool(Name = "get_schedule")]
+    [Description("Get the robot's weekly cleaning schedule (one row per scheduled day). Stored on-robot; runs with no cloud.")]
+    public Task<string> GetSchedule(
+        [Description("The robot's BLID / registry id")] string robotId,
+        CancellationToken cancellationToken)
+        => _api.GetJson($"/api/roomba/settings/schedule{Q(robotId)}", cancellationToken);
+
+    [McpServerTool(Name = "set_schedule")]
+    [Description("Replace the weekly cleaning schedule. Each entry lists weekday indices (0=Sunday..6=Saturday) and a HH:MM (24h) time. An empty entries list clears the schedule.")]
+    public Task<string> SetSchedule(
+        [Description("The robot's BLID / registry id")] string robotId,
+        [Description("Schedule entries, e.g. [{\"days\":[1,3,5],\"time\":\"09:30\"}]")] ScheduleEntry[] entries,
+        CancellationToken cancellationToken)
+        => _api.PostJson($"/api/roomba/settings/schedule{Q(robotId)}", new { entries }, cancellationToken);
+
+    /// <summary>One schedule row for <see cref="SetSchedule"/>: clean on these weekdays at this time.</summary>
+    public record ScheduleEntry(
+        [property: Description("Weekday indices, 0=Sunday..6=Saturday")] int[] Days,
+        [property: Description("Time of day, HH:MM (24h)")] string Time
+    );
 }

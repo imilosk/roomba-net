@@ -583,6 +583,42 @@ public static class RoombaEndpoints
             .WithDescription("Select the robot voice language (nested langs2.sLang), e.g. \"en-US_1\". The language pack must already be on the robot.")
             .Produces<SettingsResponse>()
             .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapGet("/schedule", async (
+                [FromQuery] string robotId,
+                [FromServices] RoombaStatusManager statusManager,
+                CancellationToken cancellationToken) =>
+            {
+                if (string.IsNullOrWhiteSpace(robotId))
+                {
+                    return Results.BadRequest("robotId is required");
+                }
+
+                var state = await statusManager.GetCurrentState(robotId, TimeSpan.FromSeconds(8), cancellationToken);
+                return Results.Ok(WeeklyScheduleResponse.From(robotId, state));
+            })
+            .WithName("GetSchedule")
+            .WithSummary("Get the weekly cleaning schedule")
+            .WithDescription(
+                "Returns the robot's weekly schedule parsed from cleanSchedule2 (one row per scheduled day). The schedule is stored on the robot and fires on-device, so it works with no cloud connection.")
+            .Produces<WeeklyScheduleResponse>()
+            .Produces<string>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/schedule", async (
+                [FromBody] SetScheduleRequest request,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetScheduleAsync(request, robotId, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetSchedule")
+            .WithSummary("Set the weekly cleaning schedule")
+            .WithDescription(
+                "Replaces the weekly schedule with the given entries. Each entry lists weekday indices (0=Sunday..6=Saturday) and a HH:MM time. An empty entries list clears the schedule. Stored on-robot; runs with no cloud connection.")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
     }
 
     private static List<string> GetAvailableSettings(RoombaState state)

@@ -72,7 +72,7 @@ public class RoombaState
     public CleanMissionStatus? CleanMissionStatus { get; set; }
 
     [JsonPropertyName("cleanSchedule2")]
-    public List<object>? CleanSchedule2 { get; set; }
+    public List<CleanScheduleEntry>? CleanSchedule2 { get; set; }
 
     [JsonPropertyName("cloudEnv")]
     public string? CloudEnv { get; set; }
@@ -211,6 +211,47 @@ public class RoombaState
 
     [JsonPropertyName("wlcfg")]
     public WifiConfig? Wlcfg { get; set; }
+}
+
+/// <summary>
+/// One entry in the robot's <c>cleanSchedule2</c> array (modern daredevil/sanmarino
+/// firmware). Each entry fires on the listed weekdays at the given time.
+/// </summary>
+public class CleanScheduleEntry
+{
+    [JsonPropertyName("enabled")]
+    public bool? Enabled { get; set; }
+
+    [JsonPropertyName("type")]
+    public int? Type { get; set; }
+
+    [JsonPropertyName("start")]
+    public ScheduleStartInfo? Start { get; set; }
+
+    [JsonPropertyName("cmd")]
+    public ScheduleCmdInfo? Cmd { get; set; }
+}
+
+public class ScheduleStartInfo
+{
+    /// <summary>Weekday indices (0 = Sunday .. 6 = Saturday) this entry fires on.</summary>
+    [JsonPropertyName("day")]
+    public List<int>? Day { get; set; }
+
+    [JsonPropertyName("hour")]
+    public int? Hour { get; set; }
+
+    [JsonPropertyName("min")]
+    public int? Min { get; set; }
+}
+
+public class ScheduleCmdInfo
+{
+    [JsonPropertyName("command")]
+    public string? Command { get; set; }
+
+    [JsonPropertyName("ordered")]
+    public int? Ordered { get; set; }
 }
 
 public class BatteryInfo

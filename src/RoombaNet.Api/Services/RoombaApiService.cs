@@ -1174,4 +1174,76 @@ public class RoombaApiService
                 ex.GetType().Name, ex.Message);
         }
     }
+
+    public async Task<SettingsResponse> SetScheduleAsync(
+        SetScheduleRequest request,
+        string robotId,
+        CancellationToken cancellationToken = default)
+    {
+        var executionId = Guid.NewGuid().ToString();
+        var timestamp = _timeProvider.GetUtcNow().DateTime;
+
+        try
+        {
+            // Build the 7-slot (Sun..Sat) arrays SetSchedule expects. Entries replace the
+            // whole schedule; an empty list clears it.
+            var cycle = new string[7];
+            Array.Fill(cycle, "none");
+            var hours = new int[7];
+            var minutes = new int[7];
+
+            foreach (var entry in request.Entries ?? [])
+            {
+                var (hour, minute) = ParseTime(entry.Time);
+                foreach (var day in entry.Days ?? [])
+                {
+                    if (day is < 0 or > 6)
+                    {
+                        return new SettingsResponse(false, "Schedule",
+                            $"Invalid day index {day}. Valid values are 0 (Sunday) .. 6 (Saturday).",
+                            timestamp, executionId, "InvalidValue");
+                    }
+
+                    cycle[day] = "start";
+                    hours[day] = hour;
+                    minutes[day] = minute;
+                }
+            }
+
+            var client = await _clientFactory.GetClient(robotId, cancellationToken);
+            await client.SettingsService.SetSchedule(cycle, hours, minutes, cancellationToken);
+
+            var scheduledDays = cycle.Count(c => c == "start");
+            var message = scheduledDays == 0
+                ? "Schedule cleared"
+                : $"Schedule set for {scheduledDays} day(s)";
+
+            return new SettingsResponse(true, "Schedule", message, timestamp, executionId);
+        }
+        catch (FormatException ex)
+        {
+            return new SettingsResponse(false, "Schedule", ex.Message, timestamp, executionId, "InvalidValue");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set schedule");
+            return new SettingsResponse(false, "Schedule", "Failed to set schedule", timestamp, executionId,
+                ex.GetType().Name, ex.Message);
+        }
+    }
+
+    private static (int hour, int minute) ParseTime(string time)
+    {
+        var parts = (time ?? "").Split(':');
+        if (parts.Length != 2
+            || !int.TryParse(parts[0], out var hour)
+            || !int.TryParse(parts[1], out var minute)
+            || hour is < 0 or > 23
+            || minute is < 0 or > 59)
+        {
+            throw new FormatException($"Invalid time '{time}'. Use HH:MM (24h), e.g. 09:30.");
+        }
+
+        return (hour, minute);
+    }
 }
