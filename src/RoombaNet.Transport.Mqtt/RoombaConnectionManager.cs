@@ -73,12 +73,27 @@ public class RoombaConnectionManager : IRoombaConnectionManager
 
     private static MqttClientOptions CreateMqttClientChannelOptions(RoombaSettings roombaSettings)
     {
-        return new MqttClientOptionsBuilder()
+        var builder = new MqttClientOptionsBuilder()
             .WithTcpServer(roombaSettings.Ip, roombaSettings.Port)
+            .WithCleanSession()
+            .WithProtocolVersion(MqttProtocolVersion.V311);
+
+        if (!roombaSettings.UseTls)
+        {
+            // Plain connection to a proxy shared by several clients: a fixed client id would make
+            // each new connection kick the previous one off, so make it unique per connection.
+            builder.WithClientId($"{roombaSettings.Blid}-{Guid.NewGuid().ToString("N")[..12]}");
+            if (!string.IsNullOrEmpty(roombaSettings.Password))
+            {
+                builder.WithCredentials(roombaSettings.Blid, roombaSettings.Password);
+            }
+
+            return builder.Build();
+        }
+
+        return builder
             .WithClientId(roombaSettings.Blid)
             .WithCredentials(roombaSettings.Blid, roombaSettings.Password)
-            .WithCleanSession()
-            .WithProtocolVersion(MqttProtocolVersion.V311)
             .WithTlsOptions(o =>
             {
                 o.UseTls();
