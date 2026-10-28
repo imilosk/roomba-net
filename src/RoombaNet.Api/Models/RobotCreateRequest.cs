@@ -7,4 +7,7 @@ public class RobotCreateRequest
     public string Ip { get; init; } = string.Empty;
     public int? Port { get; init; }
     public string? Password { get; init; }
+
+    // False to reach the robot through a plain MQTT proxy. Null keeps the stored value (new robots: true).
+    public bool? UseTls { get; init; }
 }

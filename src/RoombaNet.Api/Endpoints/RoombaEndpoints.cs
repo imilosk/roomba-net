@@ -853,6 +853,7 @@ public static class RoombaEndpoints
                             Blid = roomba.Blid,
                             Name = roomba.RobotName,
                             Ip = roomba.Ip,
+                            UseTls = true, // discovered address is the robot itself
                         }, cancellationToken);
                     }
                 }

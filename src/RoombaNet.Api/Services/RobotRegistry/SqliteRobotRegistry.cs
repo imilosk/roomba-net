@@ -31,7 +31,7 @@ public class SqliteRobotRegistry : IRobotRegistry
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = """
-                              SELECT blid, name, ip, port, password
+                              SELECT blid, name, ip, port, password, use_tls
                               FROM robots
                               ORDER BY blid;
                               """;
@@ -50,7 +50,7 @@ public class SqliteRobotRegistry : IRobotRegistry
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = """
-                              SELECT blid, name, ip, port, password
+                              SELECT blid, name, ip, port, password, use_tls
                               FROM robots
                               WHERE blid = $blid;
                               """;
@@ -73,8 +73,9 @@ public class SqliteRobotRegistry : IRobotRegistry
             return Task.FromResult<RobotCredentials?>(null);
         }
 
+        // A plain (non-TLS) proxy may not need a password; the robot itself always does.
         var password = _secretProtector.Unprotect(row.PasswordEncrypted);
-        if (string.IsNullOrEmpty(password))
+        if (string.IsNullOrEmpty(password) && row.UseTls)
         {
             return Task.FromResult<RobotCredentials?>(null);
         }
@@ -83,7 +84,8 @@ public class SqliteRobotRegistry : IRobotRegistry
             row.Blid,
             row.Ip,
             row.Port,
-            password
+            password ?? string.Empty,
+            row.UseTls
         );
 
         return Task.FromResult<RobotCredentials?>(credentials);
@@ -100,13 +102,14 @@ public class SqliteRobotRegistry : IRobotRegistry
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = """
-                              INSERT INTO robots (blid, name, ip, port, password, created_utc, updated_utc)
-                              VALUES ($blid, $name, $ip, $port, $password, $created_utc, $updated_utc)
+                              INSERT INTO robots (blid, name, ip, port, password, use_tls, created_utc, updated_utc)
+                              VALUES ($blid, $name, $ip, $port, $password, COALESCE($use_tls, 1), $created_utc, $updated_utc)
                               ON CONFLICT(blid) DO UPDATE SET
                                   name = excluded.name,
                                   ip = excluded.ip,
                                   port = excluded.port,
                                   password = COALESCE(excluded.password, robots.password),
+                                  use_tls = COALESCE($use_tls, robots.use_tls),
                                   updated_utc = excluded.updated_utc;
                               """;
 
@@ -115,20 +118,14 @@ public class SqliteRobotRegistry : IRobotRegistry
         command.Parameters.AddWithValue("$ip", request.Ip);
         command.Parameters.AddWithValue("$port", port);
         command.Parameters.AddWithValue("$password", (object?)password ?? DBNull.Value);
+        command.Parameters.AddWithValue("$use_tls", (object?)request.UseTls ?? DBNull.Value);
         command.Parameters.AddWithValue("$created_utc", now);
         command.Parameters.AddWithValue("$updated_utc", now);
 
         command.ExecuteNonQuery();
 
-        var record = new RobotRecord(
-            request.Blid,
-            request.Name,
-            request.Ip,
-            port,
-            !string.IsNullOrEmpty(request.Password)
-        );
-
-        return Task.FromResult(record);
+        // Read back: on conflict, password and use_tls may keep their stored values.
+        return Task.FromResult(ToRecord(GetRobotRow(request.Blid)!));
     }
 
     public Task<RobotRecord> Update(string blid, RobotUpdateRequest request, CancellationToken cancellationToken = default)
@@ -150,6 +147,7 @@ public class SqliteRobotRegistry : IRobotRegistry
             Ip = request.Ip ?? row.Ip,
             Port = request.Port ?? row.Port,
             PasswordEncrypted = password,
+            UseTls = request.UseTls ?? row.UseTls,
             UpdatedUtc = now,
         };
 
@@ -161,6 +159,7 @@ public class SqliteRobotRegistry : IRobotRegistry
                                   ip = $ip,
                                   port = $port,
                                   password = $password,
+                                  use_tls = $use_tls,
                                   updated_utc = $updated_utc
                               WHERE blid = $blid;
                               """;
@@ -170,19 +169,12 @@ public class SqliteRobotRegistry : IRobotRegistry
         command.Parameters.AddWithValue("$ip", updated.Ip);
         command.Parameters.AddWithValue("$port", updated.Port);
         command.Parameters.AddWithValue("$password", (object?)updated.PasswordEncrypted ?? DBNull.Value);
+        command.Parameters.AddWithValue("$use_tls", updated.UseTls);
         command.Parameters.AddWithValue("$updated_utc", updated.UpdatedUtc ?? now);
 
         command.ExecuteNonQuery();
 
-        var record = new RobotRecord(
-            updated.Blid,
-            updated.Name,
-            updated.Ip,
-            updated.Port,
-            !string.IsNullOrEmpty(updated.PasswordEncrypted)
-        );
-
-        return Task.FromResult(record);
+        return Task.FromResult(ToRecord(updated));
     }
 
     public Task<bool> Delete(string blid, CancellationToken cancellationToken = default)
@@ -279,7 +271,7 @@ public class SqliteRobotRegistry : IRobotRegistry
         using var connection = OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = """
-                              SELECT blid, name, ip, port, password, created_utc, updated_utc
+                              SELECT blid, name, ip, port, password, use_tls, created_utc, updated_utc
                               FROM robots
                               WHERE blid = $blid;
                               """;
@@ -301,13 +293,27 @@ public class SqliteRobotRegistry : IRobotRegistry
         var ip = reader.GetString(2);
         var port = reader.GetInt32(3);
         var password = reader.IsDBNull(4) ? null : reader.GetString(4);
+        var useTls = reader.GetBoolean(5);
 
         return new RobotRecord(
             blid,
             name,
             ip,
             port,
-            !string.IsNullOrEmpty(password)
+            !string.IsNullOrEmpty(password),
+            useTls
+        );
+    }
+
+    private static RobotRecord ToRecord(RobotRow row)
+    {
+        return new RobotRecord(
+            row.Blid,
+            row.Name,
+            row.Ip,
+            row.Port,
+            !string.IsNullOrEmpty(row.PasswordEncrypted),
+            row.UseTls
         );
     }
 
@@ -319,8 +325,9 @@ public class SqliteRobotRegistry : IRobotRegistry
             reader.GetString(2),
             reader.GetInt32(3),
             reader.IsDBNull(4) ? null : reader.GetString(4),
-            reader.IsDBNull(5) ? (DateTime?)null : ParseUtc(reader.GetString(5)),
-            reader.IsDBNull(6) ? (DateTime?)null : ParseUtc(reader.GetString(6))
+            reader.GetBoolean(5),
+            reader.IsDBNull(6) ? (DateTime?)null : ParseUtc(reader.GetString(6)),
+            reader.IsDBNull(7) ? (DateTime?)null : ParseUtc(reader.GetString(7))
         );
     }
 
@@ -340,6 +347,7 @@ public class SqliteRobotRegistry : IRobotRegistry
         string Ip,
         int Port,
         string? PasswordEncrypted,
+        bool UseTls,
         DateTime? CreatedUtc,
         DateTime? UpdatedUtc
     );
@@ -358,7 +366,7 @@ public class SqliteRobotRegistry : IRobotRegistry
 
         var expected = new[]
         {
-            "blid", "name", "ip", "port", "password", "created_utc", "updated_utc"
+            "blid", "name", "ip", "port", "password", "created_utc", "updated_utc", "use_tls"
         };
 
         if (columns.Count == 0)
@@ -372,7 +380,8 @@ public class SqliteRobotRegistry : IRobotRegistry
                                      port INTEGER NOT NULL,
                                      password TEXT,
                                      created_utc TEXT,
-                                     updated_utc TEXT
+                                     updated_utc TEXT,
+                                     use_tls INTEGER NOT NULL DEFAULT 1
                                  );
                                  """;
             create.ExecuteNonQuery();
@@ -381,6 +390,15 @@ public class SqliteRobotRegistry : IRobotRegistry
 
         if (columns.SequenceEqual(expected, StringComparer.OrdinalIgnoreCase))
         {
+            return;
+        }
+
+        // Schema before use_tls existed: add the column in place, keeping every row.
+        if (columns.SequenceEqual(expected[..^1], StringComparer.OrdinalIgnoreCase))
+        {
+            using var alter = connection.CreateCommand();
+            alter.CommandText = "ALTER TABLE robots ADD COLUMN use_tls INTEGER NOT NULL DEFAULT 1;";
+            alter.ExecuteNonQuery();
             return;
         }
 
@@ -395,7 +413,8 @@ public class SqliteRobotRegistry : IRobotRegistry
                                   port INTEGER NOT NULL,
                                   password TEXT,
                                   created_utc TEXT,
-                                  updated_utc TEXT
+                                  updated_utc TEXT,
+                                  use_tls INTEGER NOT NULL DEFAULT 1
                               );
                               INSERT INTO robots_new (blid, name, ip, port, password, created_utc, updated_utc)
                               SELECT blid, blid, ip, port, password, created_utc, updated_utc FROM robots;

@@ -120,7 +120,12 @@ public class RoombaStatusManager
 
     private void ProcessMessage(RobotStatusState state, MqttApplicationMessageReceivedEventArgs messageEvent)
     {
-        var payload = messageEvent.ApplicationMessage.ConvertPayloadToString() ?? string.Empty;
+        var payload = NormalizePayload(messageEvent.ApplicationMessage.ConvertPayloadToString());
+        if (payload is null)
+        {
+            return;
+        }
+
         var timestamp = _timeProvider.GetUtcNow().DateTime;
 
         try
@@ -140,6 +145,33 @@ public class RoombaStatusManager
             // snapshot permanently partial. Log it and keep the last good state.
             _logger.LogWarning(ex, "Failed to merge status message on topic {Topic}; keeping last known state",
                 messageEvent.ApplicationMessage.Topic);
+        }
+    }
+
+    // The robot sends {"state":{"reported":{...}}}. A proxy in front of it may also publish the
+    // full state as a bare object; wrap that so it merges the same way. Non-object payloads are skipped.
+    private static string? NormalizePayload(string? payload)
+    {
+        if (string.IsNullOrWhiteSpace(payload))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(payload);
+            if (doc.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            return doc.RootElement.TryGetProperty(JsonStateProperty, out _)
+                ? payload
+                : $"{{\"{JsonStateProperty}\":{{\"{JsonReportedProperty}\":{payload}}}}}";
+        }
+        catch (JsonException)
+        {
+            return null;
         }
     }
 
