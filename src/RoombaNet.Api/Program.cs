@@ -1,9 +1,13 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using RoombaNet.Api.Endpoints;
 using RoombaNet.Api.Services;
+using RoombaNet.Api.Services.Proxy;
 using RoombaNet.Api.Services.RoombaClients;
 using RoombaNet.Api.Services.RoombaStatus;
 using RoombaNet.Api.Services.RobotRegistry;
 using RoombaNet.Core;
+using RoombaNet.Proxy;
+using RoombaNet.Proxy.Configuration;
 using Scalar.AspNetCore;
 using RoombaNet.Transport.Mqtt;
 
@@ -23,6 +27,12 @@ builder.Services.AddOpenApi();
 builder.Services.AddCore(builder.Configuration);
 builder.Services.AddMqtt(builder.Configuration);
 builder.Services.AddRobotRegistry(builder.Configuration);
+
+// The proxy draws its robot list from the registry. Registered before AddRoombaProxy so its
+// TryAdd default (configuration-based) source does not win. The hosted service only starts when
+// Proxy:Enabled is true, so this is an opt-in that does not change existing behaviour.
+builder.Services.TryAddSingleton<IProxyRobotSource, RegistryProxyRobotSource>();
+builder.Services.AddRoombaProxy(builder.Configuration);
 
 builder.Services.AddScoped<RoombaApiService>();
 builder.Services.AddSingleton<IRoombaClientFactory, RoombaClientFactory>();
