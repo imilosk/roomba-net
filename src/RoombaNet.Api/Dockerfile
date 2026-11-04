@@ -1,5 +1,5 @@
 # Build stage
-FROM mcr.microsoft.com/dotnet/sdk:10.0.100-alpine3.22 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.403-alpine3.24 AS build
 WORKDIR /src
 
 # Copy solution and project files
@@ -7,6 +7,7 @@ COPY global.json .
 COPY RoombaNet.slnx .
 COPY src/RoombaNet.Api/RoombaNet.Api.csproj src/RoombaNet.Api/
 COPY src/RoombaNet.Core/RoombaNet.Core.csproj src/RoombaNet.Core/
+COPY src/RoombaNet.Proxy/RoombaNet.Proxy.csproj src/RoombaNet.Proxy/
 COPY src/RoombaNet.Settings/RoombaNet.Settings.csproj src/RoombaNet.Settings/
 COPY src/RoombaNet.Transport.Mqtt/RoombaNet.Transport.Mqtt.csproj src/RoombaNet.Transport.Mqtt/
 COPY src/RoombaNet.Transport.Tls/RoombaNet.Transport.Tls.csproj src/RoombaNet.Transport.Tls/
@@ -26,7 +27,7 @@ RUN dotnet publish -c Release -o /app/publish \
     /p:ExcludeFilesFromPublish="**/RoombaNet.Settings/appsettings*.json"
 
 # Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.0-alpine3.22 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.14-alpine3.24 AS final
 WORKDIR /app
 
 # Create non-root user
