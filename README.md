@@ -1,532 +1,172 @@
 # RoombaNet
 
-A .NET application for local control of iRobot devices via MQTT, without relying on cloud services.
+Local control for iRobot robots, written in .NET.
 
-## 🤖 Compatibility
+RoombaNet talks to the robot directly over its local MQTT interface. It does not use the iRobot
+cloud, and it keeps working when the robot has no internet access at all.
 
-### Tested Devices
-- **Roomba i3** ✅ Fully tested and confirmed working
-- **Braava jet m6** 🟡 Discovery and status confirmed (firmware sanmarino 22.29.6); commands and mop settings not yet exercised
+It has four parts:
 
-### Potentially Compatible Models
-Based on MQTT protocol support, the following models should work but are untested:
+| Part | Project | What it does |
+|---|---|---|
+| CLI | `src/RoombaNet.Cli` | Control a robot from the terminal. AOT-compiled to a single binary. |
+| REST API | `src/RoombaNet.Api` | HTTP API with OpenAPI docs, a robot registry, and live status over SSE. |
+| MCP server | `src/RoombaNet.Mcp` | Lets an AI assistant control the robots through the API. |
+| MQTT proxy | `src/RoombaNet.Proxy` | Shares one robot connection between many clients. |
 
-**i-series** (entry to mid-tier with smart features)
-- i1, i2, i3, i4, i5, i6, i7, i8
+## Features
 
-**j-series** (advanced with object recognition)
-- j7, j7+, j9, j9+
+- Discovery on the local network, also across subnets.
+- Password retrieval and Wi-Fi setup, so you do not need the iRobot app.
+- All mission commands: start, stop, pause, resume, dock, spot, evac, and more.
+- Status snapshot, human-readable summary, firmware versions, and a live event stream.
+- Persistent maps: list maps, clear all maps, and clean selected rooms.
+- Weekly schedule: read and write. The schedule is stored and run on the robot.
+- Settings: cleaning passes, suction power, edge clean, child lock, bin pause, volume,
+  timezone, language, and more.
+- Braava settings: mopping overlap, liquid amount, and charging light pattern.
+- Several robots at once: CLI profiles, an API registry, and a multi-robot proxy.
 
-**s-series** (premium with D-shaped design)
-- s9, s9+
+## Compatibility
 
-**900 series** (older premium models)
-- 960, 980
+| Robot | Firmware | Status |
+|---|---|---|
+| Roomba i3+ | daredevil 2.6.0 | Tested. All features work. |
+| Braava jet m6 | sanmarino 22.29.6 | Discovery and status tested. Commands and mop settings are only partly tested. |
 
-**600 series** (budget models with Wi-Fi)
-- 690, 695, 698 (if equipped with Wi-Fi)
+Other Wi-Fi robots that use the same local MQTT protocol should also work, but are not tested:
+i-series, j-series, s-series, the 960 and 980, and the Wi-Fi 600 series. Robots without
+Wi-Fi are not supported. If you test another model, please open an issue with the results.
 
-**Braava** (mopping robots)
-- Jet m6 (see Tested Devices)
+### The one-connection limit
 
-**Note**: Models without Wi-Fi connectivity or those using only Bluetooth are not supported.
+A robot accepts only one local MQTT connection at a time. When a second client connects, the
+robot drops the first one. This includes the iRobot app. Two RoombaNet tools pointed at the same
+robot will keep disconnecting each other.
 
-### Connection Requirements
-- Local network connectivity required
-- MQTT protocol support (most Wi-Fi enabled Roombas from 2016+)
-- No cloud services required - all communication stays on your local network
-- **⚠️ Single connection limit**: Roombas only allow one active MQTT connection at a time. If you start a second instance (CLI, API, or mobile app), the previous connection will be disconnected. This is a hardware limitation of the Roomba, not this application.
+To use the CLI, API, and MCP server at the same time, run the [MQTT proxy](docs/proxy.md). It
+keeps the single connection to each robot and lets many clients share it.
 
-## 🌟 Features
+## Quick start
 
-### Core Capabilities
-- **CLI Tool** — full local control from the terminal (AOT-compiled, single binary)
-- **RESTful API** — OpenAPI/Scalar documented
-- **MCP Server** — control the Roomba from any AI assistant (Claude, etc.) over the Model Context Protocol
-- **Real-time Status Streaming**: Server-Sent Events (SSE) for live status updates
-- **Map Management**: list and clear persistent maps, clean specific rooms/zones
-- **Local Communication**: Direct MQTT connection to your Roomba
-- **Privacy-Focused**: All communication stays on your local network — **no cloud, ever**
-
-### Supported Commands
-- `find` - Make the Roomba beep to locate it
-- `start` - Start a cleaning mission
-- `stop` - Stop the current cleaning mission
-- `pause` - Pause the cleaning mission
-- `resume` - Resume a paused mission
-- `dock` - Return to charging dock
-- `evac` / `stopevac` - Empty bin into Clean Base / stop evacuation (auto-evacuation models only)
-- `reset` - Reset Roomba to factory settings
-- `train` - Start a training run for mapping
-- `spot` - Spot clean
-- `wake` / `sleep` / `off` - Power management
-- `tidy` - Tidy-up clean
-- `skip` - Skip the current area/room
-- `wlapon` / `wlapoff` - Turn the Wi-Fi radio on/off
-- `raw <command>` - Send any other device-specific command (e.g. `washpad`, `drypad`, `flushsluice`)
-
-### Maps & Region Cleaning
-- List persistent maps (pmaps) stored on the robot
-- **Clear all maps** to force a fresh remap — fully local, no cloud
-- Clean specific rooms/zones within a map
-
-### Settings
-- Child lock, bin pause, edge cleaning
-- Cleaning passes (one / two / auto)
-- Cleaning power (eco / auto carpet-boost / performance)
-- Rename the robot
-- Braava: mopping overlap, liquid amount, charging light pattern
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- .NET 10.0 or later
-- Roomba connected to your local network
-- Roomba BLID and password (see configuration section)
-
-### Installation
+You need the .NET 10 SDK (10.0.403 or newer), and a robot on your network.
 
 ```bash
-git clone https://github.com/imilosk/RoombaNet.git
-cd RoombaNet
+git clone https://github.com/imilosk/roomba-net.git
+cd roomba-net
 dotnet build
 ```
 
-### Configuration
+1. Find the robot and note its IP and BLID:
 
-#### Step 1: Discover Your Roomba
-
-First, find your Roomba on the network to get its IP address and BLID:
-
-```bash
-dotnet run --project src/RoombaNet.Cli discover
-```
-
-This will display information like:
-```
-Found 1 Roomba(s):
-
-Name:          My Roomba
-BLID:          1234567890ABCDEF
-IP Address:    192.168.1.100
-Hostname:      Roomba-1234567890ABCDEF
-MAC Address:   AA:BB:CC:DD:EE:FF
-SKU/Model:     i355020
-```
-
-#### Step 2: Get Your Roomba Password
-
-The process varies by model:
-
-**For i3, i3+, and similar models:**
-1. Press and hold both the **HOME** and **SPOT CLEAN** buttons for about 2 seconds until you hear a sound and the CLEAN button turns blue
-2. The Roomba will create its own Wi-Fi network (e.g., "Roomba-XXXXXXXX")
-3. Connect your computer to the Roomba's Wi-Fi network
-4. Run discovery again to get the Roomba's IP on its own network:
    ```bash
    dotnet run --project src/RoombaNet.Cli discover
    ```
-5. Get the password using the new IP address:
-   ```bash
-   dotnet run --project src/RoombaNet.Cli get password --ip 192.168.10.1
-   ```
-   (The IP is typically `192.168.10.1` on the Roomba's network)
-6. Reconnect to your regular Wi-Fi network
 
-**For other models:**
-1. Place Roomba on the dock
-2. Hold the HOME button for about 2 seconds until it plays a series of tones (about 6 beeps)
-3. Run the command immediately:
+2. Get the robot password. Put the robot in pairing mode and connect your computer to the
+   robot's own Wi-Fi network first, see
+   [Getting started](docs/getting-started.md#2-get-the-robot-password).
+
    ```bash
-   dotnet run --project src/RoombaNet.Cli get password --ip 192.168.1.100
+   dotnet run --project src/RoombaNet.Cli get password
    ```
 
-Replace `192.168.1.100` with your Roomba's IP address from step 1.
+3. Create `src/RoombaNet.Settings/secrets.Development.json`:
 
-#### Step 3: Create Configuration File
-
-Create a `secrets.Development.json` file in the `src/RoombaNet.Settings/` directory with the information from steps 1 and 2:
-
-```json
-{
-  "RoombaSettings": {
-    "Ip": "192.168.1.100",
-    "Port": 8883,
-    "Blid": "1234567890ABCDEF",
-    "Password": "your_roomba_password_from_step_2"
-  }
-}
-```
-
-### Configure Wi-Fi
-
-If you don't want to use the iRobot app, you can configure your Roomba's Wi-Fi settings directly using this CLI:
-
-1. **Put Roomba in configuration mode** (same as Step 2 above for password)
-2. **Connect your computer to the Roomba's Wi-Fi network**
-3. **Run the configure-wifi command:**
-   ```bash
-   dotnet run --project src/RoombaNet.Cli configure-wifi \
-     --ssid "YourWiFiNetwork" \
-     --password "YourWiFiPassword"
-   ```
-
-Optional parameters:
-- `--robot-name "My Roomba"` - Set a custom name
-- `--timezone "America/New_York"` - Set IANA timezone
-- `--country "US"` - Set country code
-
-After configuration, the Roomba will connect to your Wi-Fi network within a minute. **Important:** Do not press any buttons on the Roomba while it's connecting to Wi-Fi. Once the configuration is complete, the Roomba will exit configuration mode and you'll hear a confirmation beep. You can then reconnect your computer to your regular network.
-
-## 📖 Usage Examples
-
-### CLI Commands
-
-Run the CLI tool with different commands:
-
-```bash
-# Discover Roombas on your network
-dotnet run --project src/RoombaNet.Cli discover
-
-# Robots on another subnet/VLAN (broadcast can't reach them): query an IP or range directly
-dotnet run --project src/RoombaNet.Cli discover --target 192.168.20.0/24
-
-# Configure Wi-Fi settings (connect to Roomba's network first)
-dotnet run --project src/RoombaNet.Cli configure-wifi --ssid "YourNetwork" --password "YourPassword"
-
-# Get Roomba password (hold HOME button for 2 seconds first)
-dotnet run --project src/RoombaNet.Cli get password
-
-# Make the Roomba beep (find command)
-dotnet run --project src/RoombaNet.Cli execute find
-
-# Start cleaning
-dotnet run --project src/RoombaNet.Cli execute start
-
-# Return to dock
-dotnet run --project src/RoombaNet.Cli execute dock
-
-# Subscribe to all Roomba events and messages
-dotnet run --project src/RoombaNet.Cli subscribe
-
-# Get current settings
-dotnet run --project src/RoombaNet.Cli get
-
-# One-shot status snapshot (battery, phase, bin, position, map count)
-dotnet run --project src/RoombaNet.Cli status
-
-# Commands: spot clean, tidy, skip a room, power off, toggle Wi-Fi radio
-dotnet run --project src/RoombaNet.Cli command spot
-dotnet run --project src/RoombaNet.Cli command skip
-dotnet run --project src/RoombaNet.Cli command wifi-off
-# Send any raw command
-dotnet run --project src/RoombaNet.Cli command raw washpad
-
-# Maps: list, and clear all (local-only — forces a fresh remap)
-dotnet run --project src/RoombaNet.Cli maps list
-dotnet run --project src/RoombaNet.Cli maps clear
-
-# Clean specific rooms/zones in a map
-dotnet run --project src/RoombaNet.Cli clean-regions --pmap <pmap_id> --regions 1 3 5
-
-# Settings: cleaning power (0 eco / 1 auto / 2 performance), edge clean, rename
-dotnet run --project src/RoombaNet.Cli setting cleaningpower 2
-dotnet run --project src/RoombaNet.Cli setting edgeclean on
-dotnet run --project src/RoombaNet.Cli setting name "Dusty"
-
-# Get help and see all available commands
-dotnet run --project src/RoombaNet.Cli --help
-```
-
-### MQTT Proxy (share one robot connection across API, MCP, and CLI)
-
-iRobot robots accept only **one** local MQTT connection at a time — a second client kicks the
-first. The proxy holds that single upstream connection per robot and fans it out to many clients.
-A client connects to the proxy exactly as it would to the robot (TLS on 8883, username =
-client-id = BLID, password = the robot's local password); the only thing that changes is the host IP.
-
-```bash
-# Run the proxy standalone from the CLI (proxies every robot in Robots:Profiles)
-dotnet run --project src/RoombaNet.Cli proxy
-
-# Watch every robot at once via the plain localhost listener (aggregated, no auth)
-mosquitto_sub -h 127.0.0.1 -p 1883 -t 'roomba/#' -v
-```
-
-Or enable it inside the API by setting `Proxy:Enabled` to `true` (robots are taken from the API
-robot registry). See [docs/proxy.md](docs/proxy.md) for the architecture, config keys, and the
-two listeners.
-
-Example output when using the `execute` command:
-```
-🔍 Sending 'find' command to Roomba...
-✅ Command 'find' sent successfully
-🤖 Roomba should now be beeping!
-```
-
-Example output when using the `subscribe` command:
-```
-👂 Listening for Roomba messages... (Press Ctrl+C to exit)
-📥 Message received:
-   Topic: wifistat
-   Payload: {"wifi_state":{"connected":true,"signal":-45}}
-   Timestamp: 2025-11-23 14:23:15
-   --------------------------------------------------
-```
-
-### API Usage
-
-#### Option 1: Run with .NET
-```bash
-dotnet run --project src/RoombaNet.Api
-```
-
-#### Option 2: Run with Docker
-```bash
-# Build the image
-docker build -t roombanet-api .
-
-# Run the container
-docker run -d \
-  --name roombanet \
-  -p 8080:8080 \
-  -e RobotRegistry__DatabasePath=/data/roombanet.db \
-  -e RobotRegistry__EncryptionKey=base64_32_byte_key \
-  roombanet-api
-
-# View logs
-docker logs -f roombanet
-
-# Stop the container
-docker stop roombanet
-```
-
-Notes:
-- `RobotRegistry__DatabasePath` is optional; defaults to `roombanet.db` in the app directory.
-- `RobotRegistry__EncryptionKey` is optional but recommended; use a base64-encoded 32-byte key to encrypt stored passwords.
-
-#### Robot Registry (Multi-Robot)
-```bash
-# Discover robots and save them to the registry
-curl "http://localhost:8080/api/roomba/discovery?save=true"
-
-# Include robots on another subnet/VLAN (target is repeatable: IP or CIDR range)
-curl "http://localhost:8080/api/roomba/discovery?save=true&target=192.168.20.0/24"
-
-# List registered robots
-curl http://localhost:8080/api/roomba/robots
-
-# Pair a robot to store its password (put robot in pairing mode first)
-curl -X POST http://localhost:8080/api/roomba/robots/{blid}/pair
-
-# Configure Wi-Fi (connect to Roomba's AP first)
-curl -X POST "http://localhost:8080/api/roomba/wifi/configure?robotId={blid}" \
-  -H "Content-Type: application/json" \
-  -d '{"ssid":"YourNetwork","password":"YourPassword"}'
-```
-
-#### Single Commands
-```bash
-# Start cleaning
-curl -X POST "http://localhost:8080/api/roomba/commands/start?robotId={blid}"
-
-# Find Roomba (make it beep)
-curl -X POST "http://localhost:8080/api/roomba/commands/find?robotId={blid}"
-
-# Return to dock
-curl -X POST "http://localhost:8080/api/roomba/commands/dock?robotId={blid}"
-
-# Evacuate bin (Clean Base models only)
-curl -X POST "http://localhost:8080/api/roomba/evac?robotId={blid}"
-
-# Get available commands
-curl http://localhost:8080/api/roomba/commands
-```
-
-#### Batch Commands
-```bash
-# Execute multiple commands sequentially
-curl -X POST "http://localhost:8080/api/roomba/commands/batch?robotId={blid}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "commands": ["start", "pause", "resume"],
-    "sequential": true
-  }'
-
-# Execute commands in parallel
-curl -X POST "http://localhost:8080/api/roomba/commands/batch?robotId={blid}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "commands": ["find", "start"],
-    "sequential": false
-  }'
-```
-
-#### Settings Management
-```bash
-# Enable child lock
-curl -X POST "http://localhost:8080/api/roomba/settings/child-lock?robotId={blid}" \
-  -H "Content-Type: application/json" \
-  -d '{"enable": true}'
-
-# Enable bin pause
-curl -X POST "http://localhost:8080/api/roomba/settings/bin-pause?robotId={blid}" \
-  -H "Content-Type: application/json" \
-  -d '{"enable": true}'
-
-# Set cleaning passes (1, 2, or 3)
-curl -X POST "http://localhost:8080/api/roomba/settings/cleaning-passes?robotId={blid}" \
-  -H "Content-Type: application/json" \
-  -d '{"passes": 2}'
-
-# Braava: set mopping overlap (rankOverlap)
-curl -X POST "http://localhost:8080/api/roomba/settings/rank-overlap?robotId={blid}" \
-  -H "Content-Type: application/json" \
-  -d '{"value": 1}'
-# 0-100 percentage
-
-# Braava: set liquid amount (padWetness)
-curl -X POST "http://localhost:8080/api/roomba/settings/liquid-amount?robotId={blid}" \
-  -H "Content-Type: application/json" \
-  -d '{"value": 1}'
-# 1 = Eco, 2 = Standard, 3 = Ultra
-
-# Braava: set charging light pattern (chrgLrPtrn)
-curl -X POST "http://localhost:8080/api/roomba/settings/charging-light-pattern?robotId={blid}" \
-  -H "Content-Type: application/json" \
-  -d '{"value": 1}'
-# 0 = Docking & charging, 1 = Docking only, 2 = No status lights
-```
-
-#### Wi-Fi Configuration
-```bash
-# Configure Wi-Fi (connect to Roomba's AP first)
-curl -X POST "http://localhost:8080/api/roomba/wifi/configure?robotId={blid}" \
-  -H "Content-Type: application/json" \
-  -d '{"ssid":"YourNetwork","password":"YourPassword"}'
-```
-
-#### Real-time Status Streaming
-```bash
-# Current status snapshot (battery, mission, bin, position, map count)
-curl "http://localhost:8080/api/roomba/status?robotId={blid}"
-
-# Stream live status updates (Server-Sent Events)
-curl "http://localhost:8080/api/roomba/status/stream?robotId={blid}"
-
-# Get health check
-curl http://localhost:8080/api/roomba/health
-```
-
-#### Maps & Region Cleaning
-```bash
-# List persistent maps
-curl "http://localhost:8080/api/roomba/maps?robotId={blid}"
-
-# Delete ALL maps (local-only; the robot remaps on its next run)
-curl -X DELETE "http://localhost:8080/api/roomba/maps?robotId={blid}"
-
-# Clean specific rooms/zones within a map
-curl -X POST "http://localhost:8080/api/roomba/clean-regions?robotId={blid}" \
-  -H "Content-Type: application/json" \
-  -d '{"pmapId":"<pmap_id>","regions":[{"regionId":"1","type":"rid"},{"regionId":"3","type":"rid"}]}'
-```
-
-## 🧠 AI Control (MCP Server)
-
-`RoombaNet.Mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server that lets an
-AI assistant (Claude Desktop, Claude Code, etc.) control your Roomba in natural language. It bridges
-to the REST API over your local network — **no cloud involved**.
-
-### Run it
-
-1. Start the API (it must be reachable from the MCP server):
-   ```bash
-   dotnet run --project src/RoombaNet.Api   # serves on http://localhost:5264 by default
-   ```
-2. Register the MCP server with your AI client. Example for Claude Desktop / Claude Code
-   (`claude_desktop_config.json` or `.mcp.json`):
    ```json
    {
-     "mcpServers": {
-       "roomba": {
-         "command": "dotnet",
-         "args": ["run", "--project", "/absolute/path/to/RoombaNet/src/RoombaNet.Mcp"],
-         "env": { "ROOMBANET_API_URL": "http://localhost:5264" }
-       }
+     "RoombaSettings": {
+       "Ip": "192.168.1.100",
+       "Blid": "1234567890ABCDEF",
+       "Password": "your-robot-password"
      }
    }
    ```
-   (Or build once and point `command` at the published `RoombaNet.Mcp` binary.)
 
-### Available tools
-`list_robots`, `discover_robots`, `get_status`, `start_cleaning`, `stop_cleaning`, `pause_cleaning`,
-`resume_cleaning`, `dock`, `find`, `evacuate_bin`, `send_command`, `list_maps`, `clear_maps`,
-`clean_regions`, `set_cleaning_power`, `set_cleaning_passes`, `set_child_lock`.
+4. Check that it works:
 
-Then just ask: *"Send the Roomba to clean the kitchen and living room, then dock."*
+   ```bash
+   dotnet run --project src/RoombaNet.Cli status
+   dotnet run --project src/RoombaNet.Cli command find
+   ```
 
-## 📋 Roadmap
+Secrets files (`secrets.*.json`) are in `.gitignore`. Do not commit them.
 
-### Completed ✅
-- [x] MQTT communication with Roomba
-- [x] CLI tool for all basic commands
-- [x] Message subscription and monitoring
-- [x] RESTful API
-- [x] Real-time status streaming (SSE)
-- [x] One-shot status snapshot (CLI `status` / `GET /status`)
-- [x] Batch command execution
-- [x] Settings management (child lock, bin pause, passes, power, edge, name, Braava)
-- [x] Map management: list + clear persistent maps (local, no cloud)
-- [x] Room-specific / zone cleaning
-- [x] MCP server for AI assistant control
-- [x] Docker container support
-- [x] Multi-robot support
+## Documentation
 
-### In Progress 🚧
-- [ ] Web UI for browser-based control (https://github.com/imilosk/roomba-net-ui)
-- [ ] Unit and integration tests
+| Document | Content |
+|---|---|
+| [Getting started](docs/getting-started.md) | Discovery, passwords, configuration, Wi-Fi setup, several robots. |
+| [CLI](docs/cli.md) | All CLI commands with examples. |
+| [REST API](docs/api.md) | Endpoints, robot registry, Docker. |
+| [MCP server](docs/mcp.md) | Connecting an AI assistant. |
+| [MQTT proxy](docs/proxy.md) | Sharing one robot connection between many clients. |
+| [OpenWrt network setup](docs/openwrt.md) | Isolating the robots from the cloud, and giving them correct time. |
+| [Mission observations](docs/MISSION_OBSERVATIONS.md) | What the robot reports during a real mission. |
+| [Protocol notes and roadmap](docs/ROOMBA_NOTES_AND_ROADMAP.md) | Verified protocol details and plans. |
 
-### Planned 📝
-- [ ] Keep-out zone management
-- [ ] Cleaning history and analytics
-- [ ] Schedule management UI
-- [ ] Home Assistant MQTT-discovery bridge
+## Project layout
 
-## 🤝 Contributing
+```
+src/
+  RoombaNet.Core              Robot services: commands, settings, maps, discovery, Wi-Fi
+  RoombaNet.Transport.Mqtt    MQTT connection handling
+  RoombaNet.Transport.Tls     TLS connection used for password retrieval
+  RoombaNet.Settings          Shared configuration (robot connection settings, profiles)
+  RoombaNet.Cli               Command-line tool
+  RoombaNet.Api               REST API
+  RoombaNet.Mcp               MCP server (talks to the REST API)
+  RoombaNet.Proxy             Multi-robot MQTT proxy
+  RoombaNet.Proxy.Tests       Proxy tests
+```
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Build and test:
 
-### Ways to Contribute
-- **Test on your Roomba model**: Help expand the compatibility list
-- **Report bugs**: Open an issue with details about your setup
-- **Feature requests**: Suggest new features or improvements
-- **Code contributions**: Submit PRs with bug fixes or new features
-- **Documentation**: Improve README, add examples, or write guides
+```bash
+dotnet build RoombaNet.slnx
+dotnet test RoombaNet.slnx
+```
 
-### Testing Other Models
-If you have a Roomba model not listed as tested, we'd love your help! The easiest way to contribute compatibility data:
-1. Run the API or CLI tool with your Roomba
-2. Check if basic commands work (find, start, stop, dock)
-3. Report your results in a GitHub issue with your model number
+## Roadmap
 
-## 📄 License
+Done:
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- Local MQTT control, CLI, REST API, SSE status stream
+- Settings, maps, room cleaning, weekly schedule, firmware info
+- MCP server
+- Docker image for the API
+- Several robots, robot registry, MQTT proxy
 
-## 🙏 Acknowledgments
+In progress:
 
-- iRobot for creating the robots
-- The reverse engineering community for MQTT protocol documentation
-    - https://github.com/koalazak/dorita980
-    - https://github.com/pschmitt/roombapy
-    - https://github.com/v6ak/Roomba980-Python-WiFi-only
-- All contributors and testers
+- Web UI: [roomba-net-ui](https://github.com/imilosk/roomba-net-ui)
+- More unit and integration tests
 
-## ⚠️ Disclaimer
+Planned:
 
-This project is not affiliated with, endorsed by, or sponsored by iRobot Corporation. Use at your own risk. The software is provided "as is" without warranty of any kind, express or implied.
+- Keep-out zones
+- Cleaning history
+- Home Assistant MQTT discovery
 
-**Important Notes:**
-- Some operations may void your warranty
+## Contributing
+
+Pull requests are welcome. The most useful help is testing on robot models that are not in the
+compatibility table. Run `status` and a few basic commands (`find`, `start`, `stop`, `dock`), and
+report the model, firmware, and results in an issue.
+
+## Acknowledgments
+
+This project builds on the protocol work of:
+
+- [dorita980](https://github.com/koalazak/dorita980)
+- [roombapy](https://github.com/pschmitt/roombapy)
+- [Roomba980-Python](https://github.com/v6ak/Roomba980-Python-WiFi-only)
+
+## License
+
+MIT. See [LICENSE](LICENSE).
+
+## Disclaimer
+
+This project is not affiliated with, endorsed by, or sponsored by iRobot Corporation. It is
+provided as is, without warranty of any kind. Use it at your own risk.
