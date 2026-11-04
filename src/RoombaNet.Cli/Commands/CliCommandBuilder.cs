@@ -1,4 +1,5 @@
 using RoombaNet.Core;
+using RoombaNet.Proxy;
 using RoombaNet.Settings.Settings;
 using RoombaNet.Transport.Mqtt;
 using Command = System.CommandLine.Command;
@@ -17,6 +18,7 @@ public class CliCommandBuilder
     private readonly IRoombaDiscoveryService _roombaDiscoveryService;
     private readonly IRoombaConnectionManager _connectionManager;
     private readonly RoombaSettings _roombaSettings;
+    private readonly RoombaProxyService _proxyService;
 
     public CliCommandBuilder(
         IRoombaSubscriptionService roombaSubscriber,
@@ -27,7 +29,8 @@ public class CliCommandBuilder
         IRoombaPasswordService roombaPasswordService,
         IRoombaDiscoveryService roombaDiscoveryService,
         IRoombaConnectionManager connectionManager,
-        RoombaSettings roombaSettings
+        RoombaSettings roombaSettings,
+        RoombaProxyService proxyService
     )
     {
         _roombaSubscriber = roombaSubscriber;
@@ -39,6 +42,7 @@ public class CliCommandBuilder
         _roombaDiscoveryService = roombaDiscoveryService;
         _connectionManager = connectionManager;
         _roombaSettings = roombaSettings;
+        _proxyService = proxyService;
     }
 
     public IEnumerable<Command> BuildCommands(CancellationToken cancellationToken)
@@ -56,6 +60,7 @@ public class CliCommandBuilder
             new SetPasswordCommand(_roombaPasswordService, _roombaSettings, cancellationToken),
             new DiscoverCommand(_roombaDiscoveryService, cancellationToken),
             new ConfigureWifiCommand(_roombaWifiClient, cancellationToken),
+            new ProxyCommand(_proxyService, cancellationToken),
         ];
     }
 }

@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\RoombaNet.Core\RoombaNet.Core.csproj" />
+    <ProjectReference Include="..\RoombaNet.Proxy\RoombaNet.Proxy.csproj" />
     <ProjectReference Include="..\RoombaNet.Settings\RoombaNet.Settings.csproj" />
   </ItemGroup>
 

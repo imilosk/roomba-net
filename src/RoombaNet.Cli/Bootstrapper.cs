@@ -6,6 +6,7 @@ using RoombaNet.Cli.Commands;
 using RoombaNet.Cli.Services;
 using RoombaNet.Core;
 using RoombaNet.Core.WifiConfig;
+using RoombaNet.Proxy;
 using RoombaNet.Settings;
 using RoombaNet.Transport.Mqtt;
 
@@ -39,6 +40,11 @@ public static class Bootstrapper
         services.AddCore(configuration);
 
         services.AddMqtt(configuration);
+
+        // The proxy command needs configuration (for Robots:Profiles) and its own multi-robot services.
+        services.TryAddSingleton<IConfiguration>(configuration);
+        services.AddRoombaProxy(configuration);
+
         services.TryAddSingleton<IMqttPublisher, MqttPublisher>();
         services.TryAddSingleton<WifiConfigCommandBuilder>();
         services.TryAddSingleton<IRoombaConnectionManager, RoombaConnectionManager>();

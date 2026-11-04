@@ -239,6 +239,25 @@ dotnet run --project src/RoombaNet.Cli setting name "Dusty"
 dotnet run --project src/RoombaNet.Cli --help
 ```
 
+### MQTT Proxy (share one robot connection across API, MCP, and CLI)
+
+iRobot robots accept only **one** local MQTT connection at a time — a second client kicks the
+first. The proxy holds that single upstream connection per robot and fans it out to many clients.
+A client connects to the proxy exactly as it would to the robot (TLS on 8883, username =
+client-id = BLID, password = the robot's local password); the only thing that changes is the host IP.
+
+```bash
+# Run the proxy standalone from the CLI (proxies every robot in Robots:Profiles)
+dotnet run --project src/RoombaNet.Cli proxy
+
+# Watch every robot at once via the plain localhost listener (aggregated, no auth)
+mosquitto_sub -h 127.0.0.1 -p 1883 -t 'roomba/#' -v
+```
+
+Or enable it inside the API by setting `Proxy:Enabled` to `true` (robots are taken from the API
+robot registry). See [docs/proxy.md](docs/proxy.md) for the architecture, config keys, and the
+two listeners.
+
 Example output when using the `execute` command:
 ```
 🔍 Sending 'find' command to Roomba...
