@@ -51,6 +51,13 @@ public class RoombaTools
         CancellationToken cancellationToken)
         => _api.GetJson($"/api/roomba/status/summary{Q(robotId)}", cancellationToken);
 
+    [McpServerTool(Name = "get_firmware")]
+    [Description("Get the robot's firmware and module versions: main software version, SKU, per-module versions (nav/mob/pwr/sft/linux/con), and dock firmware. Read-only.")]
+    public Task<string> GetFirmware(
+        [Description("The robot's BLID / registry id")] string robotId,
+        CancellationToken cancellationToken)
+        => _api.GetJson($"/api/roomba/status/firmware{Q(robotId)}", cancellationToken);
+
     [McpServerTool(Name = "start_cleaning")]
     [Description("Start a cleaning mission.")]
     public Task<string> Start(
@@ -171,4 +178,97 @@ public class RoombaTools
         [Description("true to enable, false to disable")] bool enable,
         CancellationToken cancellationToken)
         => _api.PostJson($"/api/roomba/settings/child-lock{Q(robotId)}", new { enable }, cancellationToken);
+
+    [McpServerTool(Name = "set_eco_charge")]
+    [Description("Enable or disable battery-longevity eco charging (ecoCharge).")]
+    public Task<string> SetEcoCharge(
+        [Description("The robot's BLID / registry id")] string robotId,
+        [Description("true to enable, false to disable")] bool enable,
+        CancellationToken cancellationToken)
+        => _api.PostJson($"/api/roomba/settings/eco-charge{Q(robotId)}", new { enable }, cancellationToken);
+
+    [McpServerTool(Name = "set_map_upload")]
+    [Description("Allow or disallow uploading the learned map to the cloud (mapUploadAllowed).")]
+    public Task<string> SetMapUpload(
+        [Description("The robot's BLID / registry id")] string robotId,
+        [Description("true to allow, false to disallow")] bool enable,
+        CancellationToken cancellationToken)
+        => _api.PostJson($"/api/roomba/settings/map-upload{Q(robotId)}", new { enable }, cancellationToken);
+
+    [McpServerTool(Name = "set_map_learning")]
+    [Description("Allow or disallow persistent-map learning (pmapLearningAllowed).")]
+    public Task<string> SetMapLearning(
+        [Description("The robot's BLID / registry id")] string robotId,
+        [Description("true to allow, false to disallow")] bool enable,
+        CancellationToken cancellationToken)
+        => _api.PostJson($"/api/roomba/settings/map-learning{Q(robotId)}", new { enable }, cancellationToken);
+
+    [McpServerTool(Name = "set_continuous_map_learning")]
+    [Description("Allow or disallow continuous persistent-map learning (pmapCL).")]
+    public Task<string> SetContinuousMapLearning(
+        [Description("The robot's BLID / registry id")] string robotId,
+        [Description("true to allow, false to disallow")] bool enable,
+        CancellationToken cancellationToken)
+        => _api.PostJson($"/api/roomba/settings/continuous-map-learning{Q(robotId)}", new { enable }, cancellationToken);
+
+    [McpServerTool(Name = "set_perimeter_pass")]
+    [Description("Enable or disable the perimeter/edge pass (inverse of noPP).")]
+    public Task<string> SetPerimeterPass(
+        [Description("The robot's BLID / registry id")] string robotId,
+        [Description("true to enable, false to disable")] bool enable,
+        CancellationToken cancellationToken)
+        => _api.PostJson($"/api/roomba/settings/perimeter-pass{Q(robotId)}", new { enable }, cancellationToken);
+
+    [McpServerTool(Name = "set_bin_type_detect")]
+    [Description("Set bin-type auto-detection (binTypeDetect) with a raw integer value.")]
+    public Task<string> SetBinTypeDetect(
+        [Description("The robot's BLID / registry id")] string robotId,
+        [Description("The binTypeDetect integer value")] int value,
+        CancellationToken cancellationToken)
+        => _api.PostJson($"/api/roomba/settings/bin-type-detect{Q(robotId)}", new { value }, cancellationToken);
+
+    [McpServerTool(Name = "set_volume")]
+    [Description("Set the robot's speaker volume (0-100).")]
+    public Task<string> SetVolume(
+        [Description("The robot's BLID / registry id")] string robotId,
+        [Description("Volume level 0-100")] int value,
+        CancellationToken cancellationToken)
+        => _api.PostJson($"/api/roomba/settings/volume{Q(robotId)}", new { value }, cancellationToken);
+
+    [McpServerTool(Name = "set_timezone")]
+    [Description("Set the robot's IANA timezone, e.g. \"Europe/Ljubljana\".")]
+    public Task<string> SetTimezone(
+        [Description("The robot's BLID / registry id")] string robotId,
+        [Description("IANA timezone name")] string value,
+        CancellationToken cancellationToken)
+        => _api.PostJson($"/api/roomba/settings/timezone{Q(robotId)}", new { value }, cancellationToken);
+
+    [McpServerTool(Name = "set_language")]
+    [Description("Select the robot voice language (langs2.sLang), e.g. \"en-US_1\". The language pack must already be on the robot.")]
+    public Task<string> SetLanguage(
+        [Description("The robot's BLID / registry id")] string robotId,
+        [Description("Language code, e.g. en-US_1")] string value,
+        CancellationToken cancellationToken)
+        => _api.PostJson($"/api/roomba/settings/language{Q(robotId)}", new { value }, cancellationToken);
+
+    [McpServerTool(Name = "get_schedule")]
+    [Description("Get the robot's weekly cleaning schedule (one row per scheduled day). Stored on-robot; runs with no cloud.")]
+    public Task<string> GetSchedule(
+        [Description("The robot's BLID / registry id")] string robotId,
+        CancellationToken cancellationToken)
+        => _api.GetJson($"/api/roomba/settings/schedule{Q(robotId)}", cancellationToken);
+
+    [McpServerTool(Name = "set_schedule")]
+    [Description("Replace the weekly cleaning schedule. Each entry lists weekday indices (0=Sunday..6=Saturday) and a HH:MM (24h) time. An empty entries list clears the schedule.")]
+    public Task<string> SetSchedule(
+        [Description("The robot's BLID / registry id")] string robotId,
+        [Description("Schedule entries, e.g. [{\"days\":[1,3,5],\"time\":\"09:30\"}]")] ScheduleEntry[] entries,
+        CancellationToken cancellationToken)
+        => _api.PostJson($"/api/roomba/settings/schedule{Q(robotId)}", new { entries }, cancellationToken);
+
+    /// <summary>One schedule row for <see cref="SetSchedule"/>: clean on these weekdays at this time.</summary>
+    public record ScheduleEntry(
+        [property: Description("Weekday indices, 0=Sunday..6=Saturday")] int[] Days,
+        [property: Description("Time of day, HH:MM (24h)")] string Time
+    );
 }

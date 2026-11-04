@@ -5,5 +5,6 @@ public record RobotRecord(
     string Name,
     string Ip,
     int Port,
-    bool HasPassword
+    bool HasPassword,
+    bool UseTls = true
 );

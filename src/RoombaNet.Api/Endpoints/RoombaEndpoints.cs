@@ -448,6 +448,177 @@ public static class RoombaEndpoints
             .WithDescription("Change the robot's display name.")
             .Produces<SettingsResponse>()
             .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/eco-charge", async (
+                [FromBody] EnableSettingRequest request,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetEcoChargeAsync(request.Enable, robotId, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetEcoCharge")
+            .WithSummary("Set battery-longevity eco charging")
+            .WithDescription("Enable or disable eco charging (ecoCharge), which trades charge speed for battery longevity.")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/map-upload", async (
+                [FromBody] EnableSettingRequest request,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetMapUploadAsync(request.Enable, robotId, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetMapUpload")
+            .WithSummary("Allow uploading the learned map to the cloud")
+            .WithDescription("Enable or disable cloud map upload (mapUploadAllowed).")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/map-learning", async (
+                [FromBody] EnableSettingRequest request,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetMapLearningAsync(request.Enable, robotId, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetMapLearning")
+            .WithSummary("Allow persistent-map learning")
+            .WithDescription("Enable or disable persistent-map learning (pmapLearningAllowed).")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/continuous-map-learning", async (
+                [FromBody] EnableSettingRequest request,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetContinuousMapLearningAsync(request.Enable, robotId, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetContinuousMapLearning")
+            .WithSummary("Allow continuous persistent-map learning")
+            .WithDescription("Enable or disable continuous persistent-map learning (pmapCL).")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/perimeter-pass", async (
+                [FromBody] EnableSettingRequest request,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetPerimeterPassAsync(request.Enable, robotId, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetPerimeterPass")
+            .WithSummary("Set the perimeter/edge pass")
+            .WithDescription("Enable or disable the perimeter pass (inverse of noPP).")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/bin-type-detect", async (
+                [FromBody] IntSettingRequest request,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetBinTypeDetectAsync(request.Value, robotId, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetBinTypeDetect")
+            .WithSummary("Set bin-type auto-detection")
+            .WithDescription("Set bin-type auto-detection (binTypeDetect) with a raw integer value.")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/volume", async (
+                [FromBody] IntSettingRequest request,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetVolumeAsync(request.Value, robotId, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetVolume")
+            .WithSummary("Set speaker volume")
+            .WithDescription("Set the robot's speaker volume (nested audio.volume) with a value from 0 to 100.")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/timezone", async (
+                [FromBody] StringSettingRequest request,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetTimezoneAsync(request.Value, robotId, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetTimezone")
+            .WithSummary("Set the IANA timezone")
+            .WithDescription("Set the robot's IANA timezone, e.g. \"Europe/Ljubljana\".")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/language", async (
+                [FromBody] StringSettingRequest request,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetLanguageAsync(request.Value, robotId, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetLanguage")
+            .WithSummary("Set the robot voice language")
+            .WithDescription("Select the robot voice language (nested langs2.sLang), e.g. \"en-US_1\". The language pack must already be on the robot.")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
+
+        group.MapGet("/schedule", async (
+                [FromQuery] string robotId,
+                [FromServices] RoombaStatusManager statusManager,
+                CancellationToken cancellationToken) =>
+            {
+                if (string.IsNullOrWhiteSpace(robotId))
+                {
+                    return Results.BadRequest("robotId is required");
+                }
+
+                var state = await statusManager.GetCurrentState(robotId, TimeSpan.FromSeconds(8), cancellationToken);
+                return Results.Ok(WeeklyScheduleResponse.From(robotId, state));
+            })
+            .WithName("GetSchedule")
+            .WithSummary("Get the weekly cleaning schedule")
+            .WithDescription(
+                "Returns the robot's weekly schedule parsed from cleanSchedule2 (one row per scheduled day). The schedule is stored on the robot and fires on-device, so it works with no cloud connection.")
+            .Produces<WeeklyScheduleResponse>()
+            .Produces<string>(StatusCodes.Status400BadRequest);
+
+        group.MapPost("/schedule", async (
+                [FromBody] SetScheduleRequest request,
+                [FromQuery] string robotId,
+                RoombaApiService roombaService,
+                CancellationToken cancellationToken) =>
+            {
+                var result = await roombaService.SetScheduleAsync(request, robotId, cancellationToken);
+                return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+            })
+            .WithName("SetSchedule")
+            .WithSummary("Set the weekly cleaning schedule")
+            .WithDescription(
+                "Replaces the weekly schedule with the given entries. Each entry lists weekday indices (0=Sunday..6=Saturday) and a HH:MM time. An empty entries list clears the schedule. Stored on-robot; runs with no cloud connection.")
+            .Produces<SettingsResponse>()
+            .Produces<SettingsResponse>(StatusCodes.Status400BadRequest);
     }
 
     private static List<string> GetAvailableSettings(RoombaState state)
@@ -482,6 +653,41 @@ public static class RoombaEndpoints
         if (state.ChrgLrPtrn.HasValue)
         {
             settings.Add("chrgLrPtrn");
+        }
+
+        if (state.EcoCharge.HasValue)
+        {
+            settings.Add("ecoCharge");
+        }
+
+        if (state.MapUploadAllowed.HasValue)
+        {
+            settings.Add("mapUploadAllowed");
+        }
+
+        if (state.PmapLearningAllowed.HasValue)
+        {
+            settings.Add("pmapLearningAllowed");
+        }
+
+        if (state.BinTypeDetect.HasValue)
+        {
+            settings.Add("binTypeDetect");
+        }
+
+        if (state.NoPP.HasValue)
+        {
+            settings.Add("perimeterPass");
+        }
+
+        if (!string.IsNullOrWhiteSpace(state.Timezone))
+        {
+            settings.Add("timezone");
+        }
+
+        if (state.Langs2 is not null)
+        {
+            settings.Add("language");
         }
 
         return settings;
@@ -527,6 +733,26 @@ public static class RoombaEndpoints
             .WithDescription(
                 "Returns a compact, interpreted status (activity, charging, will-resume, errors) derived from the raw shadow. The raw snapshot stays available at GET /status.")
             .Produces<RobotStatusSummary>()
+            .Produces<string>(StatusCodes.Status400BadRequest);
+
+        group.MapGet("/firmware", async (
+                [FromQuery] string robotId,
+                [FromServices] RoombaStatusManager statusManager,
+                CancellationToken cancellationToken) =>
+            {
+                if (string.IsNullOrWhiteSpace(robotId))
+                {
+                    return Results.BadRequest("robotId is required");
+                }
+
+                var state = await statusManager.GetCurrentState(robotId, TimeSpan.FromSeconds(8), cancellationToken);
+                return Results.Ok(FirmwareInfo.From(robotId, state));
+            })
+            .WithName("GetRoombaFirmware")
+            .WithSummary("Get the robot's firmware and module versions")
+            .WithDescription(
+                "Returns the robot's reported firmware: main software version, SKU, per-module versions (nav/mob/pwr/sft/linux/con), and dock firmware. Read-only — RoombaNet does not push OTA updates.")
+            .Produces<FirmwareInfo>()
             .Produces<string>(StatusCodes.Status400BadRequest);
 
         group.MapGet("/stream", async (
@@ -627,6 +853,7 @@ public static class RoombaEndpoints
                             Blid = roomba.Blid,
                             Name = roomba.RobotName,
                             Ip = roomba.Ip,
+                            UseTls = true, // discovered address is the robot itself
                         }, cancellationToken);
                     }
                 }

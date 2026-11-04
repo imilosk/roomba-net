@@ -4,5 +4,6 @@ public record RobotCredentials(
     string Blid,
     string Ip,
     int Port,
-    string Password
+    string Password,
+    bool UseTls = true
 );

@@ -47,6 +47,7 @@ public class RoombaClientFactory : IRoombaClientFactory
             Ip = credentials.Ip,
             Port = credentials.Port,
             Password = credentials.Password,
+            UseTls = credentials.UseTls,
         };
 
         lock (_sync)
@@ -129,6 +130,7 @@ public class RoombaClientFactory : IRoombaClientFactory
         return string.Equals(left.Ip, right.Ip, StringComparison.Ordinal)
                && left.Port == right.Port
                && string.Equals(left.Blid, right.Blid, StringComparison.Ordinal)
-               && string.Equals(left.Password, right.Password, StringComparison.Ordinal);
+               && string.Equals(left.Password, right.Password, StringComparison.Ordinal)
+               && left.UseTls == right.UseTls;
     }
 }

@@ -32,7 +32,9 @@ public record RobotStatusSummary(
     string? DetectedPad,
     bool? TankPresent,
     int? TankLevelPct,
-    bool? LidOpen
+    bool? LidOpen,
+    // Weekly schedule, parsed from cleanSchedule2 (one row per scheduled day).
+    List<ScheduledClean> Schedule
 )
 {
     public static RobotStatusSummary From(string robotId, RoombaState state)
@@ -85,7 +87,8 @@ public record RobotStatusSummary(
             DetectedPad: state.DetectedPad,
             TankPresent: state.TankPresent,
             TankLevelPct: state.TankLvl,
-            LidOpen: state.LidOpen
+            LidOpen: state.LidOpen,
+            Schedule: WeeklyScheduleResponse.From(robotId, state).Cleans
         );
     }
 }

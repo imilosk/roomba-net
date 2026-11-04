@@ -7,3 +7,11 @@ public record EnableSettingRequest(
 public record CleaningPassesRequest(
     int Passes
 );
+
+public record IntSettingRequest(
+    int Value
+);
+
+public record StringSettingRequest(
+    string Value
+);
