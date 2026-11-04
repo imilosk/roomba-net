@@ -24,4 +24,15 @@
     <ProjectReference Include="..\RoombaNet.Settings\RoombaNet.Settings.csproj" />
   </ItemGroup>
 
+  <!-- RoombaNet.Settings ships its own appsettings.json / secrets.*.json for the CLI. They land on the
+       same publish paths as the API's files and fail the publish (NETSDK1152). The API has its own
+       config, so drop the Settings copies from the API publish output. -->
+  <Target Name="DropSettingsProjectConfigFromPublish" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+                             Condition="$([System.String]::Copy('%(ResolvedFileToPublish.FullPath)').Replace('\', '/').Contains('/RoombaNet.Settings/'))
+                                        And ('%(Extension)' == '.json')" />
+    </ItemGroup>
+  </Target>
+
 </Project>
